@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Studio">
+<meta name="apple-mobile-web-app-title" content="Clipper">
 <meta name="theme-color" content="#f4f5f7">
-<title>Studio Phone</title>
+<title>Clipper</title>
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNiAyNiI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNi41IiBmaWxsPSIjMjU2M2ViIi8+PGNpcmNsZSBjeD0iMTMiIGN5PSIxMyIgcj0iNi40IiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMS43IiBmaWxsPSJub25lIi8+PGNpcmNsZSBjeD0iMTMiIGN5PSIxMyIgcj0iMi4xIiBmaWxsPSIjZmZmIi8+PC9zdmc+">
 <style>
   :root { --bg:#f4f5f7; --panel:#fff; --line:#e3e6eb; --line2:#d5dae2; --text:#1b2330; --muted:#67717f; --faint:#9aa3b0;
@@ -86,7 +86,7 @@
   #ph { position:absolute; top:0; bottom:0; width:2px; background:#e11d48; pointer-events:none; z-index:3; }
   #ph::before { content:''; position:absolute; top:0; left:-5px; border:6px solid transparent; border-top:8px solid #e11d48; }
   /* inspector sheet */
-  #sheet { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; background:var(--panel); border-top:1px solid var(--line); }
+  #sheet { flex:1 1 auto; min-height:160px; display:flex; flex-direction:column; background:var(--panel); border-top:1px solid var(--line); }
   #tabs { display:flex; padding:4px 8px 0; border-bottom:1px solid var(--line); flex:0 0 auto; }
   #tabs button { flex:1; padding:10px 6px; border:0; background:transparent; color:var(--muted); font-weight:600; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; }
   #tabs button.active { color:var(--text); border-bottom-color:var(--accent); }
@@ -140,7 +140,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.9</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.10</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
@@ -2093,7 +2093,7 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
 </script>
 <script>
 /* ════════════════════════════════════════════════════════════════════
-   Studio Phone — a single-file movie editor for iPhone Safari.
+   Clipper (Studio Phone) — a single-file movie editor for iPhone Safari.
    Clips come from the Photos picker, the movie renders ON THE PHONE with
    WebCodecs (hardware decode/encode), captions and cards are drawn on a
    canvas (the same layout rules as the Mac engine), and the result goes
@@ -2111,7 +2111,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.9 · Oct 10 11:59';
+const VERSION = 'v1.10 · Oct 10 12:02';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2317,7 +2317,10 @@ function syncMusicPreview() {
 /* ── stage + player ────────────────────────────────────────────────── */
 function layoutStage() {
   const wrap = $('stagewrap'), fr = $('frame'); const ar = outAspect();
-  const vw = wrap.clientWidth || window.innerWidth; const appH = document.body.clientHeight || window.innerHeight; const maxH = Math.min(appH * 0.27, 320);
+  const vw = wrap.clientWidth || window.innerWidth; const appH = document.body.clientHeight || window.innerHeight;
+  // everything except the picture and the panel is fixed-height; the panel must keep ≥ 230 px
+  const fixed = ['top', 'status', 'tip', 'transport', 'tools', 'tlwrap', 'trrow', 'tabs'].reduce((a, id) => a + (($(id) && $(id).offsetHeight) || 0), 0);
+  const maxH = clamp(appH - fixed - 230, 110, 320);
   let w = vw, hh = w / ar; if (hh > maxH) { hh = maxH; w = hh * ar; }
   wrap.style.height = Math.round(Math.min(maxH, hh)) + 'px'; fr.style.width = Math.round(w) + 'px'; fr.style.height = Math.round(hh) + 'px';
   const ov = $('ov'); const dpr = Math.min(2, window.devicePixelRatio || 1); ov.width = Math.round(w * dpr); ov.height = Math.round(hh * dpr);
@@ -2917,7 +2920,7 @@ async function runExport() {
     lastBlob = blob; const secs = Math.round((Date.now() - t0) / 1000);
     $('bar').firstChild.style.width = '100%'; $('progst').textContent = 'Done'; $('progeta').textContent = '';
     const snd = !SUPPORT.audioenc ? 'none (this iOS cannot encode sound in the browser)' : `clips ${DBG.aData || DBG.aFallback ? '✓' : '— (no clip sound decoded)'} · music ${S.proj.music ? (DBG.music ? '✓ ' + S.proj.music.mode : '✗ ' + (DBG.musicErr || 'not loaded — choose the track again')) : 'none'} · written ${DBG.aChunks || 0} sound chunks${DBG.aMuxErr ? ' · writer error: ' + DBG.aMuxErr : ''}${DBG.aEncErr ? ' · encoder error: ' + DBG.aEncErr : ''}`;
-    const report = `Studio Phone ${VERSION}\n${navigator.userAgent}\nsupport ${JSON.stringify(SUPPORT)}\nsound: ${snd}\n${JSON.stringify(DBG)}`;
+    const report = `Clipper ${VERSION}\n${navigator.userAgent}\nsupport ${JSON.stringify(SUPPORT)}\nsound: ${snd}\n${JSON.stringify(DBG)}`;
     md.appendChild(h('div', { class: 'done' }, `✓ Movie ready — ${(blob.size / 1e6).toFixed(1)} MB in ${secs}s. Tap “Save to Photos”, then “Save Video”.`, h('div', { style: 'font-weight:700;margin-top:8px;font-size:13px' }, 'Sound: ' + snd), h('button', { class: 'btn', style: 'margin-top:8px', onclick: async (ev) => { try { await navigator.clipboard.writeText(report); say('Report copied — paste it to Claude'); } catch { ev.currentTarget.textContent = report; } } }, 'Copy report')));
     const foot = md.querySelector('.foot'); foot.innerHTML = '';
     const fname = (S.proj.name || 'movie').replace(/[^\w\- ]+/g, '_') + '.mp4';
