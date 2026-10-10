@@ -147,7 +147,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.15</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.16</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
@@ -2120,7 +2120,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.15 · Oct 10 12:35';
+const VERSION = 'v1.16 · Oct 10 12:53';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2198,7 +2198,7 @@ function drawCard(ctx, W, H, card) {
 const newText = (o) => Object.assign({ uid: uid(), text: '', sub: '', pos: 'bottom', size: 'm', font: 'sf', style: 'clean', color: '#ffffff', start: 0, dur: 0 }, o || {});
 const newClip = (fileId, o) => Object.assign({ uid: uid(), fileId, in: null, out: null, speed: 1, mute: false, volume: 1, fadeIn: 0, fadeOut: 0, texts: [] }, o || {});
 function defaultProj() {
-  return { v: 1, name: 'my movie', clips: [],
+  return { v: 1, name: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' movie', clips: [],
     title: { on: false, text: '', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'sf' },
     end: { on: false, text: 'The End', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'sf' },
     transition: 'none', tdur: 0.5, fadeIn: 0, fadeOut: 0.5, music: null,
@@ -2220,6 +2220,7 @@ function computeSegs() {
   if (p.title.on && (p.title.text || p.title.sub)) push({ uid: 'title', kind: 'card', card: p.title, dur: +p.title.dur || 3 });
   for (const c of p.clips) push({ uid: c.uid, kind: 'clip', clip: c, dur: clipDur(c) });
   if (p.end.on && (p.end.text || p.end.sub)) push({ uid: 'end', kind: 'card', card: p.end, dur: +p.end.dur || 3 });
+  for (let i = 0; i < segs.length; i++) segs[i].ovOut = segs[i + 1] ? segs[i + 1].ov || 0 : 0;
   S.segs = segs; S.total = t; return segs;
 }
 // for preview/timeline: the "visible" segment switches at the middle of an overlap
@@ -2628,6 +2629,42 @@ function renderMoviePane() {
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
+/* ── DiskSink: the movie streams to the phone's private storage while it renders ──
+   (a worker owns a sync access handle; the main thread posts byte ranges) */
+class DiskSink {
+  static async create(name) {
+    if (!(navigator.storage && navigator.storage.getDirectory) || typeof Worker === 'undefined') return null;
+    const code = `let h = null;
+      self.onmessage = async (e) => { const m = e.data; try {
+        if (m.op === 'open') { const root = await navigator.storage.getDirectory(); try { await root.removeEntry(m.name); } catch {} const fh = await root.getFileHandle(m.name, { create: true }); h = await fh.createSyncAccessHandle(); h.truncate(0); postMessage({ id: m.id, ok: true }); }
+        else if (m.op === 'write') { h.write(new Uint8Array(m.data), { at: m.at }); postMessage({ id: m.id, ok: true, n: m.data.byteLength }); }
+        else if (m.op === 'close') { h.flush(); const size = h.getSize(); h.close(); h = null; postMessage({ id: m.id, ok: true, size }); }
+        else if (m.op === 'abort') { try { if (h) h.close(); } catch {} h = null; const root = await navigator.storage.getDirectory(); try { await root.removeEntry(m.name); } catch {} postMessage({ id: m.id, ok: true }); }
+      } catch (err) { postMessage({ id: m.id, ok: false, err: String(err && err.message || err) }); } };`;
+    const sink = new DiskSink(); sink.name = name; sink.pending = new Map(); sink.seq = 0; sink.inflight = 0; sink.err = null;
+    try {
+      sink.w = new Worker(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
+      sink.w.onmessage = (e) => { const m = e.data; const p = sink.pending.get(m.id); if (!p) return; sink.pending.delete(m.id); if (m.n) sink.inflight -= m.n; m.ok ? p.res(m) : p.rej(new Error(m.err)); };
+      sink.w.onerror = (e) => { sink.err = new Error('storage worker: ' + e.message); for (const p of sink.pending.values()) p.rej(sink.err); sink.pending.clear(); };
+      await sink.call({ op: 'open', name });
+      return sink;
+    } catch (e) { console.warn('DiskSink unavailable', e); DBG.sinkErr = String(e && e.message || e); try { sink.w && sink.w.terminate(); } catch {} return null; }
+  }
+  call(m, transfer) { return new Promise((res, rej) => { const id = ++this.seq; this.pending.set(id, { res, rej }); this.w.postMessage(Object.assign({ id }, m), transfer || []); }); }
+  write(at, u8) {       // copy + transfer; the muxer reuses its buffers
+    const buf = new Uint8Array(u8).slice().buffer; DBG.sinkWrites = (DBG.sinkWrites || 0) + 1; DBG.sinkBytes = (DBG.sinkBytes || 0) + buf.byteLength; this.inflight += buf.byteLength; this.written = Math.max(this.written || 0, at + buf.byteLength);
+    const pr = this.call({ op: 'write', at, data: buf }, [buf]); pr.catch(e => { this.err = this.err || e; }); return pr;
+  }
+  async drain(limit) {
+    let last = this.inflight, stuck = 0;
+    while (this.inflight > (limit || 0) && !this.err) { await new Promise(r => setTimeout(r, 3)); if (this.inflight === last) { if (++stuck > 4000) throw new Error(`storage writer stopped responding (${this.inflight} bytes pending, ${this.pending.size} writes open)`); } else { stuck = 0; last = this.inflight; } }
+    if (this.err) throw this.err;
+  }
+  async close() { await this.drain(0); const m = await this.call({ op: 'close' }); this.w.terminate(); const root = await navigator.storage.getDirectory(); const fh = await root.getFileHandle(this.name); return fh.getFile(); }
+  async abort() { try { await this.call({ op: 'abort', name: this.name }); } catch {} try { this.w.terminate(); } catch {} }
+  static async remove(name) { try { const root = await navigator.storage.getDirectory(); await root.removeEntry(name); } catch {} }
+}
+
 /* ════════════════════════════════════════════════════════════════════
    RENDER ENGINE — demux (mp4box) → decode (WebCodecs) → compose (canvas)
    → encode (WebCodecs H.264) → mux (mp4-muxer) → Blob
@@ -2775,11 +2812,45 @@ async function renderMovie(onProgress) {
   if (!sup.supported) throw new Error(`H.264 ${W}×${H} encoding is not supported on this device`);
   DBG.aData = 0; DBG.aSamples = 0; DBG.aFallback = 0; DBG.music = null; DBG.musicErr = null;
   const wantAudio = SUPPORT.audioenc && SUPPORT.audiodec;
-  const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: W, height: H, frameRate: F }, audio: wantAudio ? { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
+  // output goes to disk as we go (OPFS); memory only as a fallback for odd browsers
+  const sinkName = 'clipper_render.mp4';
+  const sink = await DiskSink.create(sinkName); DBG.sink = sink ? 'disk' : 'memory'; S.activeSink = sink;
+  const target = sink ? new Mp4Muxer.StreamTarget({ onData: (data, position) => { sink.write(position, data); }, chunked: true, chunkSize: 2 * 1024 * 1024 }) : new Mp4Muxer.ArrayBufferTarget();
+  const muxer = new Mp4Muxer.Muxer({ target, video: { codec: 'avc', width: W, height: H, frameRate: F }, audio: wantAudio ? { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: sink ? false : 'in-memory', firstTimestampBehavior: 'offset' });
+  S.cancelRender = false;
   let encErr = null;
   DBG.vChunks = 0; DBG.vMuxErr = null;
   const enc = new VideoEncoder({ output: (chunk, meta) => { try { muxer.addVideoChunk(chunk, meta); DBG.vChunks++; } catch (e) { if (!DBG.vMuxErr) DBG.vMuxErr = String(e && e.message || e); encErr = e; } }, error: (e) => { encErr = e; } });
   enc.configure(vcfg);
+  // ── audio: encoder + streaming mixer (slices are final once every clip that overlaps them is done) ──
+  let aenc = null, aerr = null; DBG.aChunks = 0; DBG.aMuxErr = null; DBG.aEncErr = null;
+  const AAC_LC_48K_STEREO = new Uint8Array([0x11, 0x90]);
+  if (wantAudio) {
+    const acfg0 = { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 };
+    try { const sup = await AudioEncoder.isConfigSupported(acfg0); DBG.aCfgSupported = sup.supported; if (!sup.supported) throw new Error('AAC audio encoding is not supported on this device'); } catch (e) { DBG.aEncErr = String(e && e.message || e); }
+    let aMetaSeen = false, aFirstSeen = false;
+    aenc = new AudioEncoder({ output: (chunk, meta) => {
+      try {
+        let m = meta;
+        if (!aMetaSeen) {
+          aMetaSeen = true;
+          const d = meta && meta.decoderConfig; const raw = d && d.description ? new Uint8Array(d.description.buffer ? d.description.buffer.slice(d.description.byteOffset || 0, (d.description.byteOffset || 0) + d.description.byteLength) : d.description) : null;
+          DBG.aMeta = d ? { codec: d.codec, sr: d.sampleRate, ch: d.numberOfChannels, descLen: raw ? raw.length : 0 } : null;
+          const asc = audioSpecificConfig(raw) || AAC_LC_48K_STEREO; DBG.aAsc = Array.from(asc).map(x => x.toString(16).padStart(2, '0')).join(' ');
+          m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: asc } };
+        }
+        let c = chunk; const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
+        if (!aFirstSeen) { aFirstSeen = true; DBG.aFirst = Array.from(buf.slice(0, 4)); }
+        if (buf.length > 9 && buf[0] === 0xff && (buf[1] & 0xf6) === 0xf0) { const hdr = (buf[1] & 1) ? 7 : 9; c = new EncodedAudioChunk({ type: chunk.type, timestamp: chunk.timestamp, duration: chunk.duration, data: buf.subarray(hdr) }); DBG.aAdts = (DBG.aAdts || 0) + 1; }
+        muxer.addAudioChunk(c, m); DBG.aChunks++;
+      } catch (e) { if (!DBG.aMuxErr) DBG.aMuxErr = String(e && e.message || e); }
+    }, error: (e) => { aerr = e; DBG.aEncErr = String(e && e.message || e); } });
+    try { if (!DBG.aEncErr) aenc.configure(acfg0); else aerr = new Error(DBG.aEncErr); } catch (e) { aerr = e; DBG.aEncErr = String(e && e.message || e); }
+  }
+  const mixer = wantAudio && !aerr ? new StreamMixer(segs, p, total, aenc) : null;
+  if (mixer && p.music && S.musicFile) { try { if (!S.musicBuf) await checkMusic(); const mb = S.musicBuf; if (!mb) throw new Error(p.music.status || 'music not decodable'); mixer.setMusic(mb, p.music); DBG.music = { dur: +mb.duration.toFixed(1), sr: mb.sampleRate, mode: p.music.mode, vol: p.music.volume }; } catch (e) { DBG.musicErr = String(e && e.message || e); } }
+  else if (p.music && !S.musicFile) DBG.musicErr = 'track not loaded on this visit — choose it again';
+
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const ctx = cv.getContext('2d', { alpha: false });
   const blurCache = {};
   // per-clip audio buffers
@@ -2813,7 +2884,7 @@ async function renderMovie(onProgress) {
       if (src.cur) src.cur.close(); src.cur = nxt;
     }
   };
-  const closeSource = (seg) => { const s = sources[seg.uid]; if (!s) return; if (s._sink) s._sink.finish(); if (s.cur) { try { s.cur.close(); } catch {} } s.close(); delete sources[seg.uid]; };
+  const closeSource = (seg) => { const s = sources[seg.uid]; if (!s) return; if (s._sink) s._sink.finish(); if (s.cur) { try { s.cur.close(); } catch {} } s.close(); delete sources[seg.uid]; seg.audioDone = true; if (mixer) { if (audio[seg.uid]) mixer.addClip(seg, audio[seg.uid].chans); mixer.advance(segs); } };
   const segFrame = async (seg, T) => { const lt = T - seg.start; const c = seg.clip; const srcT = c._in != null ? c._in + lt * (c.speed || 1) : (c.in || 0) + lt * (c.speed || 1); return frameFor(seg, Math.min((c.out != null ? c.out : fileOf(c).dur) - 0.001, srcT)); };
   const drawSeg = async (seg, T, alpha) => {
     if (seg.kind === 'card') { if (alpha != null && alpha < 1) { ctx.save(); ctx.globalAlpha = alpha; } drawCard(ctx, W, H, seg.card); if (alpha != null && alpha < 1) ctx.restore(); return; }
@@ -2833,7 +2904,7 @@ async function renderMovie(onProgress) {
     for (let k = 0; k < segs.length; k++) { const s = segs[k]; if (T >= s.start && T < s.start + s.dur) { if (!cur) cur = s; else nxt = s; } }
     if (!cur) cur = segs[segs.length - 1];
     // release finished sources
-    for (const s of segs) { if (sources[s.uid] && T >= s.start + s.dur + 0.001) closeSource(s); }
+    for (const s of segs) { if (sources[s.uid] && T >= s.start + s.dur + 0.001) closeSource(s); else if (!s.audioDone && s.kind === 'card' && T >= s.start + s.dur + 0.001) { s.audioDone = true; if (mixer) mixer.advance(segs); } }
     await drawSeg(cur, T); mark('drawn');
     if (nxt && nxt.ov > 0) {
       const a = clamp((T - nxt.start) / nxt.ov, 0, 1); const tr = p.transition;
@@ -2848,77 +2919,59 @@ async function renderMovie(onProgress) {
     const vf = new VideoFrame(cv, { timestamp: Math.round(i * 1e6 / F), duration: Math.round(1e6 / F) });
     enc.encode(vf, { keyFrame: i % (F * 2) === 0 }); vf.close(); mark('encode-wait');
     let spins = 0; while (enc.encodeQueueSize > 6) { await new Promise(r => setTimeout(r, 4)); if (++spins % 250 === 0) { DBG.encWaits = (DBG.encWaits || 0) + 1; if (spins > 2500 && DBG.vChunks === 0) { throw new Error('The video encoder is not producing output on this browser (queue stuck at ' + enc.encodeQueueSize + ' after ' + i + ' frames).'); } } }
+    if (S.cancelRender) { for (const s of segs) closeSource(s); try { enc.close(); } catch {} try { aenc && aenc.close(); } catch {} if (sink) await sink.abort(); throw new Error('Export cancelled.'); }
+    if (sink) await sink.drain(48 * 1024 * 1024);
     if (i % 3 === 0) { const el = (performance.now() - t0) / 1000; onProgress(i / N, el > 2 ? (N - i) * el / i : null); await new Promise(r => setTimeout(r, 0)); }
   }
+  for (const s of segs) { if (!s.audioDone) { s.audioDone = true; if (mixer) mixer.advance(segs); } }
   for (const s of segs) closeSource(s);
   mark('flush'); await enc.flush(); enc.close(); mark('audio');
-  // ── audio mix ──
-  if (wantAudio) {
-    onProgress(0.97, null, 'Mixing sound…');
-    const nS = Math.ceil(total * 48000); const L = new Float32Array(nS), R = new Float32Array(nS);
-    const addAt = (chans, startSec, gainFn) => { const off = Math.round(startSec * 48000); for (let ch = 0; ch < 2; ch++) { const src = chans[ch] || chans[0]; const dst = ch ? R : L; if (!src) continue; for (let i = 0; i < src.length; i++) { const k = off + i; if (k < 0 || k >= nS) continue; dst[k] += src[i] * gainFn(i / 48000); } } };
-    for (const seg of segs) {
-      if (seg.kind !== 'clip' || !audio[seg.uid]) continue;
-      const c = seg.clip; const vol = c.volume == null ? 1 : c.volume; let fi = +c.fadeIn || 0, fo = +c.fadeOut || 0;
-      if (p.transition === 'black') { fi = Math.max(fi, (+p.tdur || 0.5) / 2); fo = Math.max(fo, (+p.tdur || 0.5) / 2); }
-      const ovIn = seg.ov || 0; const nxtSeg = segs[segs.indexOf(seg) + 1]; const ovOut = nxtSeg ? nxtSeg.ov || 0 : 0; const dur = seg.dur;
-      addAt(audio[seg.uid].chans, seg.start, (t) => { let g = vol; if (fi > 0 && t < fi) g *= t / fi; if (fo > 0 && t > dur - fo) g *= Math.max(0, (dur - t) / fo); if (ovIn > 0 && t < ovIn) g *= t / ovIn; if (ovOut > 0 && t > dur - ovOut) g *= Math.max(0, (dur - t) / ovOut); if (t > dur) g = 0; return g; });
-    }
-    const gfi = +p.fadeIn || 0, gfo = +p.fadeOut || 0;
-    if (p.music && !S.musicFile) DBG.musicErr = 'track not loaded on this visit — choose it again';
-    if (p.music && S.musicFile) {
-      try {
-        if (!S.musicBuf) await checkMusic();
-        const mb = S.musicBuf; if (!mb) throw new Error(p.music.status || 'music not decodable');
-        DBG.music = { dur: +mb.duration.toFixed(1), sr: mb.sampleRate, mode: p.music.mode, vol: p.music.volume };
-        const mv = +p.music.volume || 0.3; const ml = resampleTo48(mb.getChannelData(0), mb.sampleRate, 1), mr = resampleTo48(mb.getChannelData(mb.numberOfChannels > 1 ? 1 : 0), mb.sampleRate, 1);
-        if (p.music.mode === 'replace') { L.fill(0); R.fill(0); }
-        const fadeD = Math.min(2.5, Math.max(0.5, total / 4));
-        for (let pos = 0; pos < nS; pos += ml.length) { const sliceLen = Math.min(ml.length, nS - pos); addAt([ml.subarray(0, sliceLen), mr.subarray(0, sliceLen)], pos / 48000, (t) => { const T = pos / 48000 + t; let g = mv; if (T < 0.5) g *= T / 0.5; if (T > total - fadeD) g *= Math.max(0, (total - T) / fadeD); return g; }); }
-      } catch (e) { console.warn('music', e); DBG.musicErr = String(e && e.message || e); }
-    }
-    for (let i = 0; i < nS; i++) { const T = i / 48000; let g = 1; if (gfi > 0 && T < gfi) g = T / gfi; if (gfo > 0 && T > total - gfo) g = Math.max(0, (total - T) / gfo); if (g !== 1) { L[i] *= g; R[i] *= g; } L[i] = clamp(L[i], -1, 1); R[i] = clamp(R[i], -1, 1); }
-    let aerr = null; DBG.aChunks = 0; DBG.aMuxErr = null;
-    const AAC_LC_48K_STEREO = new Uint8Array([0x11, 0x90]);        // AudioSpecificConfig: AOT 2, 48 kHz, 2 ch
-    let aMetaSeen = false, aMetaSeen2 = false;
-    const acfg0 = { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 };
-    try { const sup = await AudioEncoder.isConfigSupported(acfg0); DBG.aCfgSupported = sup.supported; if (!sup.supported) throw new Error('AAC audio encoding is not supported on this device'); } catch (e) { DBG.aEncErr = String(e && e.message || e); }
-    const aenc = new AudioEncoder({ output: (chunk, meta) => {
-      try {
-        let m = meta;
-        if (!aMetaSeen) {
-          aMetaSeen = true;
-          const d = meta && meta.decoderConfig; const raw = d && d.description ? new Uint8Array(d.description.buffer ? d.description.buffer.slice(d.description.byteOffset || 0, (d.description.byteOffset || 0) + d.description.byteLength) : d.description) : null;
-          DBG.aMeta = d ? { codec: d.codec, sr: d.sampleRate, ch: d.numberOfChannels, descLen: raw ? raw.length : 0, desc: raw ? Array.from(raw.slice(0, 6)).map(x => x.toString(16).padStart(2, '0')).join(' ') : null } : null;
-          // Safari hands over a whole ES_Descriptor (tag 0x03) instead of the bare
-          // AudioSpecificConfig; MP4 wants the bare 2–5 bytes. Unwrap, else use the known config.
-          const asc = audioSpecificConfig(raw) || AAC_LC_48K_STEREO;
-          DBG.aMetaSynth = !raw || asc === AAC_LC_48K_STEREO; DBG.aAsc = Array.from(asc).map(x => x.toString(16).padStart(2, '0')).join(' ');
-          m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: asc } };
-        }
-        // some encoders hand out ADTS-framed AAC (7/9-byte transport header per frame); MP4 wants raw frames
-        let c = chunk; const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
-        if (!aMetaSeen2) { aMetaSeen2 = true; DBG.aFirst = Array.from(buf.slice(0, 4)); }
-        if (buf.length > 9 && buf[0] === 0xff && (buf[1] & 0xf6) === 0xf0) { const hdr = (buf[1] & 1) ? 7 : 9; c = new EncodedAudioChunk({ type: chunk.type, timestamp: chunk.timestamp, duration: chunk.duration, data: buf.subarray(hdr) }); DBG.aAdts = (DBG.aAdts || 0) + 1; }
-        muxer.addAudioChunk(c, m); DBG.aChunks++;
-      } catch (e) { if (!DBG.aMuxErr) DBG.aMuxErr = String(e && e.message || e); }
-    }, error: (e) => { aerr = e; DBG.aEncErr = String(e && e.message || e); } });
-    try { if (!DBG.aEncErr) aenc.configure(acfg0); else aerr = new Error(DBG.aEncErr); } catch (e) { aerr = e; DBG.aEncErr = String(e && e.message || e); }
-    const FR = 1024;
-    for (let off = 0; off < nS; off += FR * 8) {
-      const n = Math.min(FR * 8, nS - off); const data = new Float32Array(n * 2); data.set(L.subarray(off, off + n), 0); data.set(R.subarray(off, off + n), n);
-      const ad = new AudioData({ format: 'f32-planar', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(off / 48000 * 1e6), data });
-      aenc.encode(ad); ad.close();
-      if (aerr) break;
-      while (aenc.encodeQueueSize > 8) await new Promise(r => setTimeout(r, 3));
-    }
-    if (!aerr) await aenc.flush().catch(() => {});
-    aenc.close();
-    if (aerr) console.warn('audio encode', aerr);
-  }
+  if (mixer) { onProgress(0.97, null, 'Finishing sound…'); mixer.finish(segs); if (!aerr) await aenc.flush().catch(() => {}); try { aenc.close(); } catch {} if (aerr) console.warn('audio encode', aerr); }
+  else if (aenc) { try { aenc.close(); } catch {} }
   onProgress(0.99, null, 'Finishing file…');
   muxer.finalize();
+  if (sink) { const f = await sink.close(); S.activeSink = null; DBG.outBytes = f.size; return f; }
   return new Blob([muxer.target.buffer], { type: 'video/mp4' });
+}
+
+/* ── StreamMixer: mixes clip sound + music into 48 kHz stereo slices and encodes
+   them as soon as every clip overlapping the slice has finished decoding ── */
+class StreamMixer {
+  constructor(segs, proj, total, aenc) { this.p = proj; this.total = total; this.enc = aenc; this.sr = 48000; this.pos = 0; this.clips = []; this.music = null; this.FR = 1024 * 8; this.nS = Math.ceil(total * 48000); }
+  setMusic(mb, m) {
+    const L = resampleTo48(mb.getChannelData(0), mb.sampleRate, 1), R = resampleTo48(mb.getChannelData(mb.numberOfChannels > 1 ? 1 : 0), mb.sampleRate, 1);
+    this.music = { L, R, vol: +m.volume || 0.3, replace: m.mode === 'replace', fadeD: Math.min(2.5, Math.max(0.5, this.total / 4)) };
+  }
+  addClip(seg, chans) {
+    const c = seg.clip; const vol = c.volume == null ? 1 : c.volume; let fi = +c.fadeIn || 0, fo = +c.fadeOut || 0;
+    if (this.p.transition === 'black') { fi = Math.max(fi, (+this.p.tdur || 0.5) / 2); fo = Math.max(fo, (+this.p.tdur || 0.5) / 2); }
+    this.clips.push({ start: seg.start, dur: seg.dur, ovIn: seg.ov || 0, ovOut: seg.ovOut || 0, chans, vol, fi, fo });
+  }
+  // everything before the first unfinished segment is final
+  advance(segs) {
+    const first = segs.find(s => !s.audioDone); const safeEnd = first ? first.start : this.total;
+    this.encodeUpTo(Math.floor(safeEnd * this.sr));
+    this.clips = this.clips.filter(c => (c.start + c.dur) * this.sr > this.pos);     // drop what's fully behind us
+  }
+  finish(segs) { this.encodeUpTo(this.nS); }
+  encodeUpTo(endSample) {
+    endSample = Math.min(endSample, this.nS);
+    while (this.pos < endSample) {
+      const n = Math.min(this.FR, endSample - this.pos); const L = new Float32Array(n), R = new Float32Array(n);
+      const p0 = this.pos, sr = this.sr, p = this.p, total = this.total;
+      if (!(this.music && this.music.replace)) for (const c of this.clips) {
+        const cs = Math.round(c.start * sr), ce = cs + Math.min(c.chans[0].length, Math.ceil(c.dur * sr)); const a = Math.max(p0, cs), b = Math.min(p0 + n, ce); if (b <= a) continue;
+        const src0 = c.chans[0], src1 = c.chans[1] || c.chans[0];
+        for (let k = a; k < b; k++) { const t = (k - cs) / sr; let g = c.vol; if (c.fi > 0 && t < c.fi) g *= t / c.fi; if (c.fo > 0 && t > c.dur - c.fo) g *= Math.max(0, (c.dur - t) / c.fo); if (c.ovIn > 0 && t < c.ovIn) g *= t / c.ovIn; if (c.ovOut > 0 && t > c.dur - c.ovOut) g *= Math.max(0, (c.dur - t) / c.ovOut); L[k - p0] += (src0[k - cs] || 0) * g; R[k - p0] += (src1[k - cs] || 0) * g; }
+      }
+      if (this.music) { const m = this.music, ml = m.L.length; if (ml) for (let k = 0; k < n; k++) { const T = (p0 + k) / sr; let g = m.vol; if (T < 0.5) g *= T / 0.5; if (T > total - m.fadeD) g *= Math.max(0, (total - T) / m.fadeD); const j = (p0 + k) % ml; L[k] += m.L[j] * g; R[k] += m.R[j] * g; } }
+      const gfi = +p.fadeIn || 0, gfo = +p.fadeOut || 0;
+      for (let k = 0; k < n; k++) { const T = (p0 + k) / sr; let g = 1; if (gfi > 0 && T < gfi) g = T / gfi; if (gfo > 0 && T > total - gfo) g = Math.max(0, (total - T) / gfo); L[k] = clamp(L[k] * g, -1, 1); R[k] = clamp(R[k] * g, -1, 1); }
+      const data = new Float32Array(n * 2); data.set(L, 0); data.set(R, n);
+      try { const ad = new AudioData({ format: 'f32-planar', sampleRate: sr, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(p0 / sr * 1e6), data }); this.enc.encode(ad); ad.close(); } catch (e) { DBG.aEncErr = DBG.aEncErr || String(e && e.message || e); }
+      this.pos += n;
+    }
+  }
 }
 function overlayStateFor(T, cur, nxt) {
   const out = { texts: [], dark: 0 };
@@ -2952,6 +3005,7 @@ async function checkForUpdate(auto) {
     const el = $('status'); el.innerHTML = ''; el.appendChild(h('span', null, `Clipper v${live} is available — `)); el.appendChild(h('button', { style: 'border:0;background:var(--accent);color:#fff;border-radius:7px;padding:3px 9px;font-weight:700', onclick: go }, 'Update now')); el.classList.add('on');
   } catch {}
 }
+window.addEventListener('pagehide', () => { try { if (S.activeSink) S.activeSink.w.terminate(); } catch {} });
 setTimeout(() => checkForUpdate(true), 1500);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(true); });
 
@@ -2998,7 +3052,7 @@ function openExport() {
   player.pause(); const p = S.proj, o = p.out; const md = $('exportmodal'); md.innerHTML = '';
   md.appendChild(h('button', { class: 'mx', onclick: () => { if (!exporting) $('exportbg').classList.remove('open'); } }, '✕'));
   md.appendChild(h('h2', null, 'Export movie'));
-  md.appendChild(h('div', { class: 'sub' }, 'Rendered on this phone — keep the screen on until it finishes.'));
+  md.appendChild(h('div', { class: 'sub' }, 'Rendered on this phone and written straight to storage, so long movies are fine — keep Clipper in front until it finishes.'));
   const opts = (label, key, list) => { const grid = h('div', { class: 'opts' }); const paint = () => grid.querySelectorAll('.opt').forEach(e => e.classList.toggle('sel', e.dataset.v === String(o[key]))); for (const [v, b, s] of list) grid.appendChild(h('div', { class: 'opt', 'data-v': String(v), onclick: () => { o[key] = v; saveLocal(); paint(); info(); if (key === 'aspect' || key === 'fit') { layoutStage(); player.refresh(); } } }, h('b', null, b), h('span', null, s))); paint(); md.appendChild(h('div', { class: 'row', style: 'align-items:flex-start' }, h('label', { style: 'padding-top:8px' }, label), grid)); };
   opts('Shape', 'aspect', [['source', 'Match clips', 'vertical if most are'], ['16:9', 'Widescreen', 'TV / YouTube'], ['9:16', 'Vertical', 'Reels / Stories'], ['1:1', 'Square', 'Instagram']]);
   opts('Size', 'res', [['1080p', 'Full HD', 'best for sharing'], ['720p', 'HD', 'faster, smaller']]);
@@ -3007,13 +3061,13 @@ function openExport() {
   const inf = h('div', { class: 'info', id: 'planinfo' }); md.appendChild(inf);
   const info = () => { const [W, H] = outSize(); inf.innerHTML = `<b>${W}×${H}</b> · ${o.fps} fps · ${fmtL(S.total)}${SUPPORT.audioenc ? '' : '<br>This iOS cannot encode audio in the browser — the movie will be silent.'}`; }; info();
   md.appendChild(h('div', { id: 'prog' }, h('div', { id: 'bar' }, h('i')), h('div', { id: 'progtxt' }, h('span', { id: 'progst' }, ''), h('span', { id: 'progeta' }, ''))));
-  md.appendChild(h('div', { class: 'foot' }, h('button', { class: 'btn', id: 'exp-cancel', onclick: () => { if (!exporting) $('exportbg').classList.remove('open'); } }, 'Cancel'), h('button', { class: 'btn primary', id: 'exp-go', onclick: runExport }, 'Export')));
+  md.appendChild(h('div', { class: 'foot' }, h('button', { class: 'btn', id: 'exp-cancel', onclick: () => { if (exporting) { S.cancelRender = true; $('progst').textContent = 'Cancelling…'; } else $('exportbg').classList.remove('open'); } }, 'Cancel'), h('button', { class: 'btn primary', id: 'exp-go', onclick: runExport }, 'Export')));
   $('exportbg').classList.add('open');
 }
 async function runExport() {
   if (exporting) return; exporting = true; lastBlob = null; S.lastExport = null; $('savelast').style.display = 'none';
   const md = $('exportmodal'); md.querySelectorAll('.done,.err').forEach(e => e.remove());
-  $('exp-go').disabled = true; $('exp-go').textContent = 'Exporting…'; $('exp-cancel').disabled = true; $('prog').classList.add('on'); $('progst').textContent = 'Starting…';
+  $('exp-go').disabled = true; $('exp-go').textContent = 'Exporting…'; $('exp-cancel').textContent = 'Stop'; $('prog').classList.add('on'); $('progst').textContent = 'Starting…';
   let wake = null; try { wake = await navigator.wakeLock.request('screen'); } catch {}
   const t0 = Date.now();
   try {
@@ -3041,7 +3095,7 @@ async function runExport() {
     const diag = `\n\n(diagnostics: ${VERSION} · ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70)} · webcodecs ${SUPPORT.webcodecs} · audio enc ${SUPPORT.audioenc} dec ${SUPPORT.audiodec} · ${JSON.stringify(DBG)})`;
     md.appendChild(h('div', { class: 'err' }, ((e && e.message) || String(e)) + diag));
     $('exp-go').disabled = false; $('exp-go').textContent = 'Try again';
-  } finally { exporting = false; $('exp-cancel').disabled = false; try { if (wake) wake.release(); } catch {} }
+  } finally { exporting = false; const ec = $('exp-cancel'); if (ec) { ec.disabled = false; ec.textContent = 'Cancel'; } try { if (wake) wake.release(); } catch {} }
 }
 $('export').onclick = openExport;
 $('exportbg').addEventListener('click', (e) => { if (e.target.id === 'exportbg' && !exporting) $('exportbg').classList.remove('open'); });
