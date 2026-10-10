@@ -147,7 +147,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.14</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.15</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
@@ -2120,7 +2120,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.14 · Oct 10 12:14';
+const VERSION = 'v1.15 · Oct 10 12:35';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2724,6 +2724,7 @@ class FrameSource {
   }
   async next() {   // next VideoFrame in presentation order, or null at end
     while (true) {
+      DBG.src = { frames: this.frames.length, pending: this.pending, done: this.done, pos: this.pos, size: this.file.size, stop: this.stopFeeding, dec: this.dec && this.dec.state, dq: this.dec && this.dec.decodeQueueSize, err: this.err && String(this.err) };
       if (this.frames.length) return this.frames.shift();
       if (this.err) throw this.err;
       if (this.done) return null;
@@ -2764,9 +2765,11 @@ async function renderMovie(onProgress) {
   if (!SUPPORT.webcodecs) throw new Error('This browser has no hardware video engine (WebCodecs). On iPhone, use Safari on iOS 16.4 or newer.');
   const p = S.proj; computeSegs(); const segs = S.segs; if (!segs.length) throw new Error('Nothing to render');
   const [W, H] = outSize(); const F = +p.out.fps || 30; const total = S.total; const N = Math.max(1, Math.round(total * F));
-  const bitrate = (p.out.res === '720p' ? 5 : 10) * 1e6 * (p.out.quality === 'best' ? 1.4 : 1);
+  const bitrate = (p.out.res === '720p' ? 6 : 12) * 1e6 * (p.out.quality === 'best' ? 1.4 : 1);
   const codec = H * W > 1280 * 720 ? (F > 30 ? 'avc1.64002A' : 'avc1.640028') : 'avc1.64001F';
-  const vcfg = { codec, width: W, height: H, bitrate, framerate: F, hardwareAcceleration: 'prefer-hardware', latencyMode: 'quality', avc: { format: 'avc' } };
+  // latencyMode 'realtime': Safari's encoder never emits a frame in 'quality' mode
+  // (queue grows until flush hangs). Realtime emits per frame on every engine; bitrate carries quality.
+  const vcfg = { codec, width: W, height: H, bitrate, framerate: F, hardwareAcceleration: 'prefer-hardware', latencyMode: 'realtime', avc: { format: 'avc' } };
   let sup = await VideoEncoder.isConfigSupported(vcfg).catch(() => ({ supported: false }));
   if (!sup.supported) { vcfg.hardwareAcceleration = 'no-preference'; sup = await VideoEncoder.isConfigSupported(vcfg).catch(() => ({ supported: false })); }
   if (!sup.supported) throw new Error(`H.264 ${W}×${H} encoding is not supported on this device`);
@@ -2820,8 +2823,10 @@ async function renderMovie(onProgress) {
     if (alpha != null && alpha < 1) ctx.restore();
   };
   const t0 = performance.now();
+  DBG.loop = { i: 0, stage: 'start', N }; const mark = (st) => { DBG.loop.stage = st; DBG.enc = { q: enc.encodeQueueSize, state: enc.state }; };
   for (let i = 0; i < N; i++) {
     if (encErr) throw encErr;
+    DBG.loop.i = i; mark('frame');
     const T = i / F;
     // which segments are live at T (at most two during a dissolve)
     let cur = null, nxt = null;
@@ -2829,7 +2834,7 @@ async function renderMovie(onProgress) {
     if (!cur) cur = segs[segs.length - 1];
     // release finished sources
     for (const s of segs) { if (sources[s.uid] && T >= s.start + s.dur + 0.001) closeSource(s); }
-    await drawSeg(cur, T);
+    await drawSeg(cur, T); mark('drawn');
     if (nxt && nxt.ov > 0) {
       const a = clamp((T - nxt.start) / nxt.ov, 0, 1); const tr = p.transition;
       if (tr === 'wipe') { ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W * a, H); ctx.clip(); await drawSeg(nxt, T, 1); ctx.restore(); }
@@ -2841,12 +2846,12 @@ async function renderMovie(onProgress) {
     for (const [t, a] of st.texts) drawText(ctx, W, H, t, a);
     if (st.dark > 0) { ctx.fillStyle = `rgba(0,0,0,${st.dark.toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
     const vf = new VideoFrame(cv, { timestamp: Math.round(i * 1e6 / F), duration: Math.round(1e6 / F) });
-    enc.encode(vf, { keyFrame: i % (F * 2) === 0 }); vf.close();
-    while (enc.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 4));
+    enc.encode(vf, { keyFrame: i % (F * 2) === 0 }); vf.close(); mark('encode-wait');
+    let spins = 0; while (enc.encodeQueueSize > 6) { await new Promise(r => setTimeout(r, 4)); if (++spins % 250 === 0) { DBG.encWaits = (DBG.encWaits || 0) + 1; if (spins > 2500 && DBG.vChunks === 0) { throw new Error('The video encoder is not producing output on this browser (queue stuck at ' + enc.encodeQueueSize + ' after ' + i + ' frames).'); } } }
     if (i % 3 === 0) { const el = (performance.now() - t0) / 1000; onProgress(i / N, el > 2 ? (N - i) * el / i : null); await new Promise(r => setTimeout(r, 0)); }
   }
   for (const s of segs) closeSource(s);
-  await enc.flush(); enc.close();
+  mark('flush'); await enc.flush(); enc.close(); mark('audio');
   // ── audio mix ──
   if (wantAudio) {
     onProgress(0.97, null, 'Mixing sound…');
@@ -3052,7 +3057,7 @@ function init() {
   if (!SUPPORT.webcodecs) say('This browser cannot render video. On iPhone use Safari (iOS 16.4+).', 8000);
 }
 init();
-window.__phone = { DBG, S, addFiles, checkMusic, audioSpecificConfig, decodeMp3WebCodecs, stripId3, renderMovie, computeSegs, drawText, drawCard, outSize, SUPPORT, player, splitAtPlayhead, trimAtPlayhead, addTextToSel, get lastBlob() { return lastBlob; } };
+window.__phone = { DBG, S, addFiles, checkMusic, FrameSource, audioSpecificConfig, decodeMp3WebCodecs, stripId3, renderMovie, computeSegs, drawText, drawCard, outSize, SUPPORT, player, splitAtPlayhead, trimAtPlayhead, addTextToSel, get lastBlob() { return lastBlob; } };
 })();
 </script>
 </body>
