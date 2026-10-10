@@ -140,7 +140,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.10</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.11</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
@@ -2111,7 +2111,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.10 · Oct 10 12:02';
+const VERSION = 'v1.11 · Oct 10 12:06';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2289,7 +2289,7 @@ $('pick').addEventListener('change', (e) => { addFiles(e.target.files); e.target
 async function checkMusic() {
   const p = S.proj; if (!p.music || !S.musicFile) return;
   const au = $('music'); try { if (au.dataset.name !== S.musicFile.name) { au.src = URL.createObjectURL(S.musicFile); au.dataset.name = S.musicFile.name; } au.loop = true; au.volume = clamp(p.music.volume || 0.3, 0, 1); } catch {}
-  const bytes = await S.musicFile.arrayBuffer();
+  const bytes = stripId3(await S.musicFile.arrayBuffer());
   const decoders = [
     ['offline', () => new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000)],
     ['live', () => new (window.AudioContext || window.webkitAudioContext)()],
@@ -2304,6 +2304,9 @@ async function checkMusic() {
       S.musicBuf = buf; p.music.status = `✓ ${S.musicFile.name} · ${fmtL(buf.duration)}${buf.duration < 5 ? ' (very short — it will repeat a lot)' : ''}`; DBG.musicDecoder = name; break;
     } catch (e) { lastErr = e; }
   }
+  if (!S.musicBuf) {            // Safari's Web Audio decoder refuses some mp3s → decode with the hardware decoder frame by frame
+    try { const b = await decodeMp3WebCodecs(bytes); if (b) { S.musicBuf = b; DBG.musicDecoder = 'webcodecs-mp3'; p.music.status = `✓ ${S.musicFile.name} · ${fmtL(b.duration)}`; } } catch (e) { lastErr = e; }
+  }
   if (!S.musicBuf) p.music.status = `✗ This track plays, but can't be mixed into the export (${(lastErr && lastErr.message) || 'not decodable'}). Try an .m4a or .mp3 copied into Files; protected Apple Music songs won't work.`;
 }
 function syncMusicPreview() {
@@ -2313,6 +2316,44 @@ function syncMusicPreview() {
   for (const v of player.vids) v.muted = (mode === 'replace') || !!(seg && seg.kind === 'clip' && seg.clip.mute);
   if (S.playing) { const d = au.duration || 0; if (d > 0) { const want = S.T % d; if (Math.abs(au.currentTime - want) > 0.35) { try { au.currentTime = want; } catch {} } } if (au.paused) au.play().catch(() => {}); }
   else if (!au.paused) au.pause();
+}
+// ID3v2 at the front (cover art, titles) is what usually trips Safari's decodeAudioData
+function stripId3(buf) {
+  const u = new Uint8Array(buf);
+  let start = 0;
+  if (u.length > 10 && u[0] === 0x49 && u[1] === 0x44 && u[2] === 0x33) { const size = ((u[6] & 0x7f) << 21) | ((u[7] & 0x7f) << 14) | ((u[8] & 0x7f) << 7) | (u[9] & 0x7f); start = 10 + size + ((u[5] & 0x10) ? 10 : 0); }
+  let end = u.length;
+  if (end - start > 128 && u[end - 128] === 0x54 && u[end - 127] === 0x41 && u[end - 126] === 0x47) end -= 128;   // ID3v1 'TAG'
+  return (start || end !== u.length) ? buf.slice(start, end) : buf;
+}
+// MP3 → PCM through WebCodecs: parse frame headers, feed each frame as a chunk
+async function decodeMp3WebCodecs(buf) {
+  if (typeof AudioDecoder === 'undefined') return null;
+  const u = new Uint8Array(buf);
+  const BR = { 1: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], 2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160] };
+  const SR = { 3: [44100, 48000, 32000], 2: [22050, 24000, 16000], 0: [11025, 12000, 8000] };
+  const frames = []; let i = 0, sr = 0, ch = 2;
+  while (i + 4 <= u.length) {
+    if (u[i] !== 0xff || (u[i + 1] & 0xe0) !== 0xe0) { i++; continue; }
+    const ver = (u[i + 1] >> 3) & 3, layer = (u[i + 1] >> 1) & 3, bri = u[i + 2] >> 4, sri = (u[i + 2] >> 2) & 3, pad = (u[i + 2] >> 1) & 1, mode = u[i + 3] >> 6;
+    if (ver === 1 || layer !== 1 || bri === 0 || bri === 15 || sri === 3) { i++; continue; }          // layer III only
+    const mpeg1 = ver === 3; const br = BR[mpeg1 ? 1 : 2][bri] * 1000; const s = SR[ver][sri]; const spf = mpeg1 ? 1152 : 576;
+    const len = Math.floor(spf / 8 * br / s) + pad; if (len < 24 || i + len > u.length) { i++; continue; }
+    sr = s; ch = mode === 3 ? 1 : 2; frames.push({ off: i, len, spf }); i += len;
+  }
+  if (frames.length < 10) return null;
+  const cfg = { codec: 'mp3', sampleRate: sr, numberOfChannels: ch };
+  const sup = await AudioDecoder.isConfigSupported(cfg).catch(() => ({ supported: false })); if (!sup.supported) return null;
+  const chans = [[], []]; let n = 0, outSr = sr;
+  const dec = new AudioDecoder({ output: (ad) => { try { outSr = ad.sampleRate; const nf = ad.numberOfFrames; for (let c = 0; c < 2; c++) { const a = new Float32Array(nf); try { ad.copyTo(a, { planeIndex: Math.min(c, ad.numberOfChannels - 1), format: 'f32-planar' }); } catch { ad.copyTo(a, { planeIndex: 0, format: 'f32-planar' }); } chans[c].push(a); } n += nf; } finally { ad.close(); } }, error: (e) => { DBG.mp3Err = String(e); } });
+  dec.configure(cfg);
+  let t = 0;
+  for (const f of frames) { dec.decode(new EncodedAudioChunk({ type: 'key', timestamp: Math.round(t * 1e6), data: u.subarray(f.off, f.off + f.len) })); t += f.spf / sr; if (dec.decodeQueueSize > 64) await new Promise(r => setTimeout(r, 2)); }
+  await dec.flush(); dec.close();
+  if (!n) return null;
+  const join = (parts) => { const out = new Float32Array(n); let o = 0; for (const a of parts) { out.set(a, o); o += a.length; } return out; };
+  const L = join(chans[0]), R = join(chans[1]);
+  return { sampleRate: outSr, numberOfChannels: ch, duration: n / outSr, length: n, getChannelData: (c) => (c ? R : L) };
 }
 /* ── stage + player ────────────────────────────────────────────────── */
 function layoutStage() {
@@ -2871,6 +2912,22 @@ function overlayStateFor(T, cur, nxt) {
   out.dark = clamp(out.dark, 0, 1); return out;
 }
 
+/* ── self-update: a Home Screen app keeps a cached copy; check the live page ── */
+async function checkForUpdate(auto) {
+  try {
+    if (!/^https?:/.test(location.protocol)) return;
+    const r = await fetch(location.pathname + '?u=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return;
+    const txt = await r.text(); const m = txt.match(/const VERSION = 'v([\d.]+) · /); if (!m) return;
+    const live = m[1], mine = (VERSION.match(/^v([\d.]+)/) || [])[1];
+    if (!live || live === mine) return;
+    const go = () => location.replace(location.pathname + '?v=' + live);
+    if (auto && !S.proj.clips.length && !exporting) { go(); return; }
+    const el = $('status'); el.innerHTML = ''; el.appendChild(h('span', null, `Clipper v${live} is available — `)); el.appendChild(h('button', { style: 'border:0;background:var(--accent);color:#fff;border-radius:7px;padding:3px 9px;font-weight:700', onclick: go }, 'Update now')); el.classList.add('on');
+  } catch {}
+}
+setTimeout(() => checkForUpdate(true), 1500);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(true); });
+
 /* ── saving the finished movie (two routes; the last export stays available) ── */
 function saveButtons(ex, dl) {
   const out = [];
@@ -2956,7 +3013,7 @@ function init() {
   if (!SUPPORT.webcodecs) say('This browser cannot render video. On iPhone use Safari (iOS 16.4+).', 8000);
 }
 init();
-window.__phone = { DBG, S, addFiles, checkMusic, renderMovie, computeSegs, drawText, drawCard, outSize, SUPPORT, player, splitAtPlayhead, trimAtPlayhead, addTextToSel, get lastBlob() { return lastBlob; } };
+window.__phone = { DBG, S, addFiles, checkMusic, decodeMp3WebCodecs, stripId3, renderMovie, computeSegs, drawText, drawCard, outSize, SUPPORT, player, splitAtPlayhead, trimAtPlayhead, addTextToSel, get lastBlob() { return lastBlob; } };
 })();
 </script>
 </body>
