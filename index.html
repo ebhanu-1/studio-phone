@@ -127,7 +127,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.5</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.6</span></div>
   <input id="name" type="text" value="my movie" style="flex:1;min-width:0;border:1px solid transparent;border-radius:8px;padding:5px 8px;font-weight:600;background:transparent">
   <span class="spacer"></span>
   <label class="btn" for="pick">＋ Clips</label>
@@ -2097,7 +2097,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.5 · Oct 10 11:39';
+const VERSION = 'v1.6 · Oct 10 11:41';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2339,10 +2339,11 @@ const player = {
     drawOverlay(T); updateTC(); updatePlayhead();
   },
   primed: false,
-  prime() {   // iOS lets media start only after a tap: start+stop every player once, inside the tap
+  prime() {   // iOS lets media start only after a tap: wake the IDLE player inside the tap
+              // (the active player and the music start for real a moment later in this same tap)
     if (this.primed) return; this.primed = true;
-    for (const v of this.vids) { try { const was = v.muted; v.muted = true; const pr = v.play(); if (pr && pr.then) pr.then(() => { v.pause(); v.muted = was; }).catch(() => { v.muted = was; }); } catch {} }
-    try { const au = $('music'); if (au.src) { const pr = au.play(); if (pr && pr.then) pr.then(() => au.pause()).catch(() => {}); } } catch {}
+    const idle = this.vids[1 - this.cur];
+    try { const was = idle.muted; idle.muted = true; const pr = idle.play(); if (pr && pr.then) pr.then(() => { if (!idle.classList.contains('on')) idle.pause(); idle.muted = was; }).catch(() => { idle.muted = was; }); } catch {}
   },
   toggle() { this.prime(); S.playing ? this.pause() : this.play(); },
   play() { if (!S.segs.length) return; if (S.T >= S.total - 0.02) S.T = 0; S.playing = true; $('play').textContent = '❚❚'; this.seek(S.T); const v = this.active(); if (v) v.play().catch(() => {}); syncMusicPreview(); cancelAnimationFrame(this.raf); this.raf = requestAnimationFrame(() => this.tick()); },
