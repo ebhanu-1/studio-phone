@@ -127,7 +127,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.3</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.4</span></div>
   <input id="name" type="text" value="my movie" style="flex:1;min-width:0;border:1px solid transparent;border-radius:8px;padding:5px 8px;font-weight:600;background:transparent">
   <span class="spacer"></span>
   <label class="btn" for="pick">＋ Clips</label>
@@ -138,7 +138,7 @@
 <div id="stagewrap">
   <div id="frame">
     <div id="stagelbl"></div>
-    <video id="blurbg" muted playsinline></video>
+    <img id="blurbg" alt="">
     <video id="vA" playsinline preload="auto"></video>
     <video id="vB" playsinline preload="auto"></video>
     <canvas id="ov"></canvas>
@@ -2097,7 +2097,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.3 · Oct 10 11:28';
+const VERSION = 'v1.4 · Oct 10 11:37';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2311,9 +2311,9 @@ const player = {
     v.muted = !!seg.clip.mute; v.volume = clamp(seg.clip.volume == null ? 1 : seg.clip.volume, 0, 1); v.playbackRate = clamp(seg.clip.speed || 1, 0.25, 4);
     const same = Math.abs(f.w / f.h - outAspect()) < 0.02; const fit = S.proj.out.fit;
     v.style.objectFit = (fit === 'fill' && !same) ? 'cover' : 'contain';
-    if (fit === 'blur' && !same) { if (bg.dataset.src !== f.url) { bg.src = f.url; bg.dataset.src = f.url; } bg.classList.add('on'); try { bg.currentTime = v.currentTime; } catch {} } else bg.classList.remove('on');
+    if (fit === 'blur' && !same && f.thumbs && f.thumbs.length) { const th = f.thumbs[Math.min(f.thumbs.length - 1, Math.floor(((v.currentTime || 0) / Math.max(0.1, f.dur)) * f.thumbs.length))]; if (bg.src !== th) bg.src = th; bg.classList.add('on'); } else bg.classList.remove('on');
     const i = S.segs.indexOf(seg); const nxt = S.segs.slice(i + 1).find(s => s.kind === 'clip'); const nf = nxt && fileOf(nxt.clip);
-    if (nf && other.dataset.src !== nf.url && nf.url !== f.url) { other.src = nf.url; other.dataset.src = nf.url; other.addEventListener('loadedmetadata', () => { try { other.currentTime = nxt.clip.in || 0; } catch {} }, { once: true }); }
+    if (nf && other.dataset.src !== nf.url && nf.url !== f.url) { other.src = nf.url; other.dataset.src = nf.url; try { other.load(); } catch {} other.addEventListener('loadedmetadata', () => { try { other.currentTime = nxt.clip.in || 0; } catch {} }, { once: true }); }
   },
   active() { return this.vids.find(v => v.classList.contains('on')); },
   seek(T) {
@@ -2327,10 +2327,16 @@ const player = {
     } else if (seg) this.cardT0 = performance.now() - (T - seg.start) * 1000;
     drawOverlay(T); updateTC(); updatePlayhead();
   },
-  toggle() { S.playing ? this.pause() : this.play(); },
+  primed: false,
+  prime() {   // iOS lets media start only after a tap: start+stop every player once, inside the tap
+    if (this.primed) return; this.primed = true;
+    for (const v of this.vids) { try { const was = v.muted; v.muted = true; const pr = v.play(); if (pr && pr.then) pr.then(() => { v.pause(); v.muted = was; }).catch(() => { v.muted = was; }); } catch {} }
+    try { const au = $('music'); if (au.src) { const pr = au.play(); if (pr && pr.then) pr.then(() => au.pause()).catch(() => {}); } } catch {}
+  },
+  toggle() { this.prime(); S.playing ? this.pause() : this.play(); },
   play() { if (!S.segs.length) return; if (S.T >= S.total - 0.02) S.T = 0; S.playing = true; $('play').textContent = '❚❚'; this.seek(S.T); const v = this.active(); if (v) v.play().catch(() => {}); syncMusicPreview(); cancelAnimationFrame(this.raf); this.raf = requestAnimationFrame(() => this.tick()); },
-  pause() { S.playing = false; $('play').textContent = '▶'; for (const v of this.vids) v.pause(); $('blurbg').pause(); syncMusicPreview(); cancelAnimationFrame(this.raf); },
-  advance() { const seg = segAt(S.T); const i = S.segs.indexOf(seg); if (i < 0 || i >= S.segs.length - 1) { this.pause(); S.T = S.total; updateTC(); updatePlayhead(); return; } this.seek(S.segs[i + 1].start + S.segs[i + 1].ov / 2 + 0.001); },
+  pause() { S.playing = false; $('play').textContent = '▶'; for (const v of this.vids) v.pause(); syncMusicPreview(); cancelAnimationFrame(this.raf); },
+  advance() { const seg = segAt(S.T); const i = S.segs.indexOf(seg); if (i < 0 || i >= S.segs.length - 1) { this.pause(); S.T = S.total; updateTC(); updatePlayhead(); return; } this.seek(S.segs[i + 1].start + S.segs[i + 1].ov / 2 + 0.001); const v = this.active(); if (v && S.playing) v.play().catch(() => {}); },
   tick() {
     if (!S.playing) return;
     const seg = segAt(S.T);
@@ -2341,7 +2347,6 @@ const player = {
         const nxt = S.segs[S.segs.indexOf(seg) + 1]; const endT = nxt ? nxt.start + nxt.ov / 2 : seg.start + seg.dur;
         if (S.T >= endT - 0.02) { this.advance(); this.raf = requestAnimationFrame(() => this.tick()); return; }
         if (v.paused) v.play().catch(() => {});
-        const bg = $('blurbg'); if (bg.classList.contains('on') && bg.paused) { try { bg.currentTime = v.currentTime; bg.play().catch(() => {}); } catch {} }
       }
     } else if (seg) { S.T = seg.start + (performance.now() - this.cardT0) / 1000; const nxt = S.segs[S.segs.indexOf(seg) + 1]; const endT = nxt ? nxt.start + nxt.ov / 2 : seg.start + seg.dur; if (S.T >= endT) { this.advance(); this.raf = requestAnimationFrame(() => this.tick()); return; } }
     drawOverlay(S.T); updateTC(); updatePlayhead(); if (S.proj.music) syncMusicPreview();
@@ -2664,6 +2669,7 @@ async function renderMovie(onProgress) {
   let sup = await VideoEncoder.isConfigSupported(vcfg).catch(() => ({ supported: false }));
   if (!sup.supported) { vcfg.hardwareAcceleration = 'no-preference'; sup = await VideoEncoder.isConfigSupported(vcfg).catch(() => ({ supported: false })); }
   if (!sup.supported) throw new Error(`H.264 ${W}×${H} encoding is not supported on this device`);
+  DBG.aData = 0; DBG.aSamples = 0; DBG.aFallback = 0; DBG.music = null; DBG.musicErr = null;
   const wantAudio = SUPPORT.audioenc && SUPPORT.audiodec;
   const muxer = new Mp4Muxer.Muxer({ target: new Mp4Muxer.ArrayBufferTarget(), video: { codec: 'avc', width: W, height: H, frameRate: F }, audio: wantAudio ? { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: 'in-memory', firstTimestampBehavior: 'offset' });
   let encErr = null;
@@ -2826,7 +2832,8 @@ async function runExport() {
     const blob = await renderMovie((frac, eta, label) => { $('bar').firstChild.style.width = Math.round(frac * 100) + '%'; $('progst').textContent = (label || 'Rendering…') + ` ${Math.round(frac * 100)}%`; $('progeta').textContent = eta != null ? `about ${eta < 60 ? Math.round(eta) + 's' : Math.ceil(eta / 60) + ' min'} left` : ''; });
     lastBlob = blob; const secs = Math.round((Date.now() - t0) / 1000);
     $('bar').firstChild.style.width = '100%'; $('progst').textContent = 'Done'; $('progeta').textContent = '';
-    md.appendChild(h('div', { class: 'done' }, `✓ Movie ready — ${(blob.size / 1e6).toFixed(1)} MB in ${secs}s. Tap “Save to Photos / Share”, then “Save Video”.`));
+    const snd = !SUPPORT.audioenc ? 'none (this iOS cannot encode sound in the browser)' : `clips ${DBG.aData || DBG.aFallback ? '✓' : '— (no clip sound decoded)'} · music ${S.proj.music ? (DBG.music ? '✓ ' + S.proj.music.mode : '✗ ' + (DBG.musicErr || 'not loaded — choose the track again')) : 'none'}`;
+    md.appendChild(h('div', { class: 'done' }, `✓ Movie ready — ${(blob.size / 1e6).toFixed(1)} MB in ${secs}s. Tap “Save to Photos / Share”, then “Save Video”.`, h('div', { style: 'font-weight:500;margin-top:6px;font-size:12.5px' }, 'Sound: ' + snd)));
     const foot = md.querySelector('.foot'); foot.innerHTML = '';
     const fname = (S.proj.name || 'movie').replace(/[^\w\- ]+/g, '_') + '.mp4';
     const file = new File([blob], fname, { type: 'video/mp4' });
