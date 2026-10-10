@@ -127,7 +127,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.4</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.5</span></div>
   <input id="name" type="text" value="my movie" style="flex:1;min-width:0;border:1px solid transparent;border-radius:8px;padding:5px 8px;font-weight:600;background:transparent">
   <span class="spacer"></span>
   <label class="btn" for="pick">＋ Clips</label>
@@ -2097,7 +2097,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.4 · Oct 10 11:37';
+const VERSION = 'v1.5 · Oct 10 11:39';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2240,8 +2240,7 @@ async function addFiles(list) {
     commit(); $('empty').classList.add('off');          // the clip shows up right away…
   }
   status('Making thumbnails…'); say(`${added.length} clip${added.length !== 1 ? 's' : ''} added`, 2500);
-  for (const id of added) { if (S.files[id] && !S.files[id].thumbs.length) { await makeThumbs(S.files[id]).catch(() => {}); renderTimeline(); } }   // …thumbnails fill in after
-  status('');
+  try { for (const id of added) { if (S.files[id] && !S.files[id].thumbs.length) { await makeThumbs(S.files[id]).catch(() => {}); renderTimeline(); } } } finally { status(''); }   // …thumbnails fill in after
 }
 function probeVideo(url) {
   return new Promise((res, rej) => {
@@ -2254,15 +2253,16 @@ function probeVideo(url) {
 async function makeThumbs(f, n) {
   n = n || 6;
   const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = f.url;
-  await new Promise(r => { v.onloadeddata = r; v.onerror = r; });
+  await new Promise(r => { v.onloadeddata = r; v.onloadedmetadata = r; v.onerror = r; setTimeout(r, 2500); try { v.load(); } catch {} });
   const cw = 120, ch = Math.round(cw * f.h / f.w) || 68; const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const ctx = cv.getContext('2d');
   const out = [];
   for (let i = 0; i < n; i++) {
     const t = Math.min(f.dur - 0.05, (i + 0.5) * f.dur / n);
-    await new Promise(r => { v.onseeked = r; v.currentTime = Math.max(0, t); setTimeout(r, 1500); });
-    try { ctx.drawImage(v, 0, 0, cw, ch); out.push(cv.toDataURL('image/jpeg', 0.6)); } catch { }
+    await new Promise(r => { v.onseeked = r; try { v.currentTime = Math.max(0, t); } catch { r(); } setTimeout(r, 1200); });
+    try { if (v.readyState >= 2) { ctx.drawImage(v, 0, 0, cw, ch); out.push(cv.toDataURL('image/jpeg', 0.6)); } } catch { }
   }
-  f.thumbs = out; v.removeAttribute('src');
+  f.thumbs = out; v.removeAttribute('src'); try { v.load(); } catch {}
+  if (!out.length) return;
   // one strip image for the timeline background
   const strip = document.createElement('canvas'); strip.width = cw * out.length; strip.height = ch; const sc = strip.getContext('2d');
   await Promise.all(out.map((u, i) => new Promise(r => { const im = new Image(); im.onload = () => { sc.drawImage(im, i * cw, 0); r(); }; im.onerror = r; im.src = u; })));
@@ -2275,11 +2275,22 @@ $('pick').addEventListener('change', (e) => { addFiles(e.target.files); e.target
 async function checkMusic() {
   const p = S.proj; if (!p.music || !S.musicFile) return;
   const au = $('music'); try { if (au.dataset.name !== S.musicFile.name) { au.src = URL.createObjectURL(S.musicFile); au.dataset.name = S.musicFile.name; } au.loop = true; au.volume = clamp(p.music.volume || 0.3, 0, 1); } catch {}
-  try {
-    const ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000);
-    const buf = await ac.decodeAudioData(await S.musicFile.arrayBuffer());
-    S.musicBuf = buf; p.music.status = `✓ ${S.musicFile.name} · ${fmtL(buf.duration)}${buf.duration < 5 ? ' (very short — it will repeat a lot)' : ''}`;
-  } catch (e) { S.musicBuf = null; p.music.status = `✗ Can't use this track (${(e && e.message) || 'not decodable'}). Protected Apple Music songs won't work — use an mp3/m4a file from Files.`; }
+  const bytes = await S.musicFile.arrayBuffer();
+  const decoders = [
+    ['offline', () => new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000)],
+    ['live', () => new (window.AudioContext || window.webkitAudioContext)()],
+  ];
+  let lastErr = null; S.musicBuf = null;
+  for (const [name, mk] of decoders) {
+    try {
+      const ac = mk();
+      // Safari's older API is callback-only: support both shapes
+      const buf = await new Promise((res, rej) => { const r = ac.decodeAudioData(bytes.slice(0), res, rej); if (r && r.then) r.then(res, rej); });
+      if (ac.close) ac.close().catch(() => {});
+      S.musicBuf = buf; p.music.status = `✓ ${S.musicFile.name} · ${fmtL(buf.duration)}${buf.duration < 5 ? ' (very short — it will repeat a lot)' : ''}`; DBG.musicDecoder = name; break;
+    } catch (e) { lastErr = e; }
+  }
+  if (!S.musicBuf) p.music.status = `✗ This track plays, but can't be mixed into the export (${(lastErr && lastErr.message) || 'not decodable'}). Try an .m4a or .mp3 copied into Files; protected Apple Music songs won't work.`;
 }
 function syncMusicPreview() {
   const au = $('music'); const p = S.proj;
