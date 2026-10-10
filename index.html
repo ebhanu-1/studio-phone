@@ -27,6 +27,7 @@
   #top { height:50px; flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:0 12px; background:var(--panel); border-bottom:1px solid var(--line); }
   #top .brand { display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.01em; }
   #top .brand svg { display:block; }
+  #top .brand #ver { font-size:10px; font-weight:600; color:var(--faint); margin-left:4px; letter-spacing:.02em; }
   #top .spacer { flex:1; }
   #status { display:none; padding:6px 12px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:600; border-bottom:1px solid var(--line); }
   #status.on { display:block; }
@@ -126,7 +127,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio</div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v0.4</span></div>
   <input id="name" type="text" value="my movie" style="flex:1;min-width:0;border:1px solid transparent;border-radius:8px;padding:5px 8px;font-weight:600;background:transparent">
   <span class="spacer"></span>
   <label class="btn" for="pick">＋ Clips</label>
@@ -2096,6 +2097,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
+const VERSION = 'v0.4 · Oct 10 11:26';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2840,7 +2842,7 @@ async function runExport() {
     say('Movie rendered', 3000);
   } catch (e) {
     console.error(e);
-    const diag = `\n\n(diagnostics: ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70)} · webcodecs ${SUPPORT.webcodecs} · audio enc ${SUPPORT.audioenc} dec ${SUPPORT.audiodec} · ${JSON.stringify(DBG)})`;
+    const diag = `\n\n(diagnostics: ${VERSION} · ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70)} · webcodecs ${SUPPORT.webcodecs} · audio enc ${SUPPORT.audioenc} dec ${SUPPORT.audiodec} · ${JSON.stringify(DBG)})`;
     md.appendChild(h('div', { class: 'err' }, ((e && e.message) || String(e)) + diag));
     $('exp-go').disabled = false; $('exp-go').textContent = 'Try again';
   } finally { exporting = false; $('exp-cancel').disabled = false; try { if (wake) wake.release(); } catch {} }
@@ -2850,6 +2852,7 @@ $('exportbg').addEventListener('click', (e) => { if (e.target.id === 'exportbg' 
 
 /* ── init ──────────────────────────────────────────────────────────── */
 function init() {
+  try { $('ver').textContent = VERSION; } catch {}
   player.init(); layoutStage();
   try { const saved = JSON.parse(localStorage.getItem('studio.phone.proj') || 'null'); if (saved && saved.proj) { S.proj = Object.assign(defaultProj(), saved.proj); S.proj.clips = []; $('name').value = S.proj.name; } } catch {}
   commit(); renderInspector();
