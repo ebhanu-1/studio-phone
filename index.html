@@ -2215,18 +2215,21 @@ function commit(opts) { opts = opts || {}; computeSegs(); saveLocal(); if (!opts
 async function addFiles(list) {
   const files = Array.from(list || []).filter(f => /video|quicktime/.test(f.type) || /\.(mov|mp4|m4v)$/i.test(f.name));
   if (!files.length) { say('Pick video files'); return; }
-  say(`Reading ${files.length} clip${files.length !== 1 ? 's' : ''}…`);
   snapshot();
-  for (const f of files) {
+  const added = [];
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    say(`Reading clip ${i + 1} of ${files.length}…`, 60000);
     const id = uid(); const url = URL.createObjectURL(f);
     const meta = await probeVideo(url).catch(() => null);
-    if (!meta) { say(`Can't play ${f.name} on this phone`); URL.revokeObjectURL(url); continue; }
+    if (!meta) { say(`Can't play ${f.name} on this phone`, 4000); URL.revokeObjectURL(url); continue; }
     S.files[id] = Object.assign({ id, file: f, name: f.name, url, thumbs: [] }, meta);
-    S.proj.clips.push(newClip(id));
+    S.proj.clips.push(newClip(id)); added.push(id);
+    if (!S.sel) S.sel = S.proj.clips[S.proj.clips.length - 1].uid;
+    commit(); $('empty').classList.add('off');          // the clip shows up right away…
   }
-  if (!S.sel && S.proj.clips.length) S.sel = S.proj.clips[0].uid;
-  commit(); $('empty').classList.add('off');
-  for (const id in S.files) if (!S.files[id].thumbs.length) makeThumbs(S.files[id]).then(renderTimeline);
+  say(`${added.length} clip${added.length !== 1 ? 's' : ''} added`, 2500);
+  for (const id of added) { if (S.files[id] && !S.files[id].thumbs.length) { await makeThumbs(S.files[id]).catch(() => {}); renderTimeline(); } }   // …thumbnails fill in after
 }
 function probeVideo(url) {
   return new Promise((res, rej) => {
