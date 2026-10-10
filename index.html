@@ -28,6 +28,9 @@
   #top .brand { display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.01em; }
   #top .brand svg { display:block; }
   #top .spacer { flex:1; }
+  #status { display:none; padding:6px 12px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:600; border-bottom:1px solid var(--line); }
+  #status.on { display:block; }
+  #stagelbl { position:absolute; left:8px; top:8px; z-index:3; font-size:11px; font-weight:700; color:#fff; background:rgba(0,0,0,.55); padding:4px 8px; border-radius:7px; pointer-events:none; max-width:70%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* stage */
   #stagewrap { flex:0 0 auto; background:var(--stage); position:relative; display:flex; align-items:center; justify-content:center; }
   #frame { position:relative; background:#000; overflow:hidden; }
@@ -46,7 +49,7 @@
   #transport .tc b { color:#fff; font-weight:600; }
   #transport .spacer { flex:1; }
   /* tools row */
-  #tools { height:46px; flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:0 10px; background:#eceef2; border-bottom:1px solid var(--line); overflow-x:auto; }
+  #tools { flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:6px 10px; background:#eceef2; border-bottom:1px solid var(--line); flex-wrap:wrap; }
   #tools .btn { padding:7px 11px; font-size:13px; }
   /* timeline */
   #tlwrap { flex:0 0 auto; height:118px; background:#eceef2; position:relative; }
@@ -55,13 +58,13 @@
   .seg { position:relative; height:76px; border-radius:9px; overflow:hidden; flex:0 0 auto; border:2px solid transparent; background:#cfd4dc center/auto 100% repeat-x; }
   .seg.card { background:#1b2330; }
   .seg.card .ct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; padding:6px; text-align:center; }
-  .seg.sel { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft); }
+  .seg.sel { border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.35); }
   .seg .nm { position:absolute; left:6px; bottom:4px; right:6px; font-size:10.5px; font-weight:600; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none; }
   .seg .dur { position:absolute; right:5px; top:4px; font-size:10px; font-weight:600; color:#fff; background:rgba(0,0,0,.55); padding:1px 5px; border-radius:4px; pointer-events:none; }
   .seg .bd { position:absolute; left:5px; top:4px; display:flex; gap:3px; pointer-events:none; }
   .seg .bd span { font-size:9.5px; font-weight:700; color:#fff; background:rgba(37,99,235,.9); padding:1px 5px; border-radius:4px; }
   .seg .bd span.m { background:rgba(220,38,38,.9); } .seg .bd span.t { background:rgba(217,119,6,.95); }
-  .seg .hnd { position:absolute; top:0; bottom:0; width:22px; display:none; background:rgba(37,99,235,.85); touch-action:none; }
+  .seg .hnd { position:absolute; top:0; bottom:0; width:26px; display:none; background:rgba(37,99,235,.85); touch-action:none; }
   .seg .hnd::after { content:''; position:absolute; left:10px; top:50%; width:2px; height:18px; margin-top:-9px; background:#fff; border-radius:1px; }
   .seg .hnd.l { left:0; } .seg .hnd.r { right:0; }
   .seg.sel .hnd { display:block; }
@@ -73,7 +76,7 @@
   #tabs { display:flex; padding:4px 8px 0; border-bottom:1px solid var(--line); flex:0 0 auto; }
   #tabs button { flex:1; padding:10px 6px; border:0; background:transparent; color:var(--muted); font-weight:600; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; }
   #tabs button.active { color:var(--text); border-bottom-color:var(--accent); }
-  #panes { flex:1 1 auto; overflow:auto; padding:12px 14px calc(24px + var(--sab)); -webkit-overflow-scrolling:touch; }
+  #panes { flex:1 1 auto; overflow:auto; padding:12px 14px calc(140px + var(--sab)); -webkit-overflow-scrolling:touch; }
   .pane { display:none; } .pane.active { display:block; }
   .sec { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); margin:16px 0 8px; }
   .sec:first-child { margin-top:2px; }
@@ -101,7 +104,9 @@
   /* modal */
   .mbg { position:fixed; inset:0; z-index:400; background:rgba(16,24,40,.38); display:none; align-items:flex-end; justify-content:center; }
   .mbg.open { display:flex; }
-  .modal { width:100%; max-height:92vh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:20px 18px calc(20px + var(--sab)); }
+  .modal { width:100%; max-height:88vh; overflow:auto; background:#fff; border-radius:18px 18px 0 0; padding:16px 18px calc(24px + var(--sab)); position:relative; }
+  .modal .mx { position:absolute; right:12px; top:12px; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:#fff; font-size:16px; }
+  .modal .foot { position:sticky; bottom:0; background:#fff; padding-top:10px; margin-top:12px; }
   .modal h2 { font-size:18px; font-weight:700; margin:0 0 4px; }
   .modal .sub { color:var(--muted); font-size:13px; margin-bottom:12px; }
   .opts { display:grid; grid-template-columns:1fr 1fr; gap:6px; flex:1; }
@@ -128,8 +133,10 @@
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn primary" id="export">Export</button>
 </div>
+<div id="status"></div>
 <div id="stagewrap">
   <div id="frame">
+    <div id="stagelbl"></div>
     <video id="blurbg" muted playsinline></video>
     <video id="vA" playsinline preload="auto"></video>
     <video id="vB" playsinline preload="auto"></video>
@@ -154,6 +161,7 @@
 </div>
 <div class="mbg" id="exportbg"><div class="modal" id="exportmodal"></div></div>
 <div id="toast"></div>
+<audio id="music" preload="auto" style="display:none"></audio>
 
 <script>
 /*! mp4box 02-11-2024 */
@@ -2084,6 +2092,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = (s) => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), sec = s % 60; return `${m}:${sec.toFixed(1).padStart(4, '0')}`; };
 const fmtL = (s) => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
+const status = (m) => { const el = $('status'); if (!el) return; el.textContent = m || ''; el.classList.toggle('on', !!m); };
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
@@ -2219,7 +2228,7 @@ async function addFiles(list) {
   const added = [];
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
-    say(`Reading clip ${i + 1} of ${files.length}…`, 60000);
+    status(`Reading clip ${i + 1} of ${files.length}… (they appear below as they load)`);
     const id = uid(); const url = URL.createObjectURL(f);
     const meta = await probeVideo(url).catch(() => null);
     if (!meta) { say(`Can't play ${f.name} on this phone`, 4000); URL.revokeObjectURL(url); continue; }
@@ -2228,8 +2237,9 @@ async function addFiles(list) {
     if (!S.sel) S.sel = S.proj.clips[S.proj.clips.length - 1].uid;
     commit(); $('empty').classList.add('off');          // the clip shows up right away…
   }
-  say(`${added.length} clip${added.length !== 1 ? 's' : ''} added`, 2500);
+  status('Making thumbnails…'); say(`${added.length} clip${added.length !== 1 ? 's' : ''} added`, 2500);
   for (const id of added) { if (S.files[id] && !S.files[id].thumbs.length) { await makeThumbs(S.files[id]).catch(() => {}); renderTimeline(); } }   // …thumbnails fill in after
+  status('');
 }
 function probeVideo(url) {
   return new Promise((res, rej) => {
@@ -2258,6 +2268,25 @@ async function makeThumbs(f, n) {
 }
 $('pick').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
 
+// decode the music once at pick time: validates the file (protected Apple
+// Music tracks fail here) and shows its length; the preview <audio> plays it
+async function checkMusic() {
+  const p = S.proj; if (!p.music || !S.musicFile) return;
+  const au = $('music'); try { if (au.dataset.name !== S.musicFile.name) { au.src = URL.createObjectURL(S.musicFile); au.dataset.name = S.musicFile.name; } au.loop = true; au.volume = clamp(p.music.volume || 0.3, 0, 1); } catch {}
+  try {
+    const ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000);
+    const buf = await ac.decodeAudioData(await S.musicFile.arrayBuffer());
+    S.musicBuf = buf; p.music.status = `✓ ${S.musicFile.name} · ${fmtL(buf.duration)}${buf.duration < 5 ? ' (very short — it will repeat a lot)' : ''}`;
+  } catch (e) { S.musicBuf = null; p.music.status = `✗ Can't use this track (${(e && e.message) || 'not decodable'}). Protected Apple Music songs won't work — use an mp3/m4a file from Files.`; }
+}
+function syncMusicPreview() {
+  const au = $('music'); const p = S.proj;
+  if (!p.music || !S.musicFile || !au.src) { if (!au.paused) au.pause(); return; }
+  const mode = p.music.mode || 'mix'; const seg = segAt(S.T);
+  for (const v of player.vids) v.muted = (mode === 'replace') || !!(seg && seg.kind === 'clip' && seg.clip.mute);
+  if (S.playing) { const d = au.duration || 0; if (d > 0) { const want = S.T % d; if (Math.abs(au.currentTime - want) > 0.35) { try { au.currentTime = want; } catch {} } } if (au.paused) au.play().catch(() => {}); }
+  else if (!au.paused) au.pause();
+}
 /* ── stage + player ────────────────────────────────────────────────── */
 function layoutStage() {
   const wrap = $('stagewrap'), fr = $('frame'); const ar = outAspect();
@@ -2297,8 +2326,8 @@ const player = {
     drawOverlay(T); updateTC(); updatePlayhead();
   },
   toggle() { S.playing ? this.pause() : this.play(); },
-  play() { if (!S.segs.length) return; if (S.T >= S.total - 0.02) S.T = 0; S.playing = true; $('play').textContent = '❚❚'; this.seek(S.T); const v = this.active(); if (v) v.play().catch(() => {}); cancelAnimationFrame(this.raf); this.raf = requestAnimationFrame(() => this.tick()); },
-  pause() { S.playing = false; $('play').textContent = '▶'; for (const v of this.vids) v.pause(); $('blurbg').pause(); cancelAnimationFrame(this.raf); },
+  play() { if (!S.segs.length) return; if (S.T >= S.total - 0.02) S.T = 0; S.playing = true; $('play').textContent = '❚❚'; this.seek(S.T); const v = this.active(); if (v) v.play().catch(() => {}); syncMusicPreview(); cancelAnimationFrame(this.raf); this.raf = requestAnimationFrame(() => this.tick()); },
+  pause() { S.playing = false; $('play').textContent = '▶'; for (const v of this.vids) v.pause(); $('blurbg').pause(); syncMusicPreview(); cancelAnimationFrame(this.raf); },
   advance() { const seg = segAt(S.T); const i = S.segs.indexOf(seg); if (i < 0 || i >= S.segs.length - 1) { this.pause(); S.T = S.total; updateTC(); updatePlayhead(); return; } this.seek(S.segs[i + 1].start + S.segs[i + 1].ov / 2 + 0.001); },
   tick() {
     if (!S.playing) return;
@@ -2313,7 +2342,7 @@ const player = {
         const bg = $('blurbg'); if (bg.classList.contains('on') && bg.paused) { try { bg.currentTime = v.currentTime; bg.play().catch(() => {}); } catch {} }
       }
     } else if (seg) { S.T = seg.start + (performance.now() - this.cardT0) / 1000; const nxt = S.segs[S.segs.indexOf(seg) + 1]; const endT = nxt ? nxt.start + nxt.ov / 2 : seg.start + seg.dur; if (S.T >= endT) { this.advance(); this.raf = requestAnimationFrame(() => this.tick()); return; } }
-    drawOverlay(S.T); updateTC(); updatePlayhead();
+    drawOverlay(S.T); updateTC(); updatePlayhead(); if (S.proj.music) syncMusicPreview();
     this.raf = requestAnimationFrame(() => this.tick());
   },
   refresh() { if (!S.segs.length) { this.show(null); $('empty').classList.remove('off'); return; } $('empty').classList.add('off'); this.seek(S.T); },
@@ -2342,7 +2371,7 @@ function drawOverlay(T) {
   for (const [t, a] of st.texts) drawText(ctx, W, H, t, a);
   if (st.dark > 0) { ctx.fillStyle = `rgba(0,0,0,${st.dark.toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
 }
-function updateTC() { $('tc').textContent = fmt(S.T); $('tot').textContent = fmt(S.total); }
+function updateTC() { $('tc').textContent = fmt(S.T); $('tot').textContent = fmt(S.total); const seg = segAt(S.T); const lbl = $('stagelbl'); if (!seg) { lbl.textContent = ''; return; } if (seg.kind === 'card') lbl.textContent = seg.uid === 'title' ? 'Title card' : 'End card'; else { const i = S.proj.clips.indexOf(seg.clip); lbl.textContent = `Clip ${i + 1} of ${S.proj.clips.length} · ${clipName(seg.clip)}` + (seg.clip.uid === S.sel ? '' : '  (tap to select)'); } }
 
 /* ── timeline (touch) ───────────────────────────────────────────────── */
 function pps() { const avail = Math.max(240, $('tl').clientWidth - 30); return S.total > 0 ? Math.max(10, avail / S.total) : 20; }
@@ -2478,10 +2507,11 @@ function renderMoviePane() {
   pane.appendChild(h('div', { class: 'row' }, h('label', null, 'Fade in'), chips([[0, 'none'], [0.5, '0.5s'], [1, '1s'], [2, '2s']], +p.fadeIn || 0, v => { snapshot(); p.fadeIn = v; commit(); })));
   pane.appendChild(h('div', { class: 'row' }, h('label', null, 'Fade out'), chips([[0, 'none'], [0.5, '0.5s'], [1, '1s'], [2, '2s']], +p.fadeOut || 0, v => { snapshot(); p.fadeOut = v; commit(); })));
   pane.appendChild(h('div', { class: 'sec' }, 'Music'));
-  const m = p.music; const mp = h('input', { type: 'file', accept: 'audio/*,.m4a,.mp3,.aac,.wav', style: 'display:none', onchange: (e) => { const f = e.target.files[0]; if (!f) return; snapshot(); S.musicFile = f; p.music = { name: f.name, mode: (m && m.mode) || 'mix', volume: (m && m.volume) || 0.3 }; commit(); } });
+  const m = p.music; const mp = h('input', { type: 'file', accept: 'audio/*,.m4a,.mp3,.aac,.wav', style: 'display:none', onchange: async (e) => { const f = e.target.files[0]; if (!f) return; snapshot(); S.musicFile = f; S.musicBuf = null; p.music = { name: f.name, mode: (m && m.mode) || 'mix', volume: (m && m.volume) || 0.3, status: 'checking…' }; commit(); await checkMusic(); commit(); } });
   pane.appendChild(mp);
   pane.appendChild(h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => mp.click() }, m ? 'Change track…' : 'Choose track…'), h('span', { style: 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:' + (m ? 'var(--text)' : 'var(--faint)') }, m ? m.name + (S.musicFile ? '' : ' (re-choose the file)') : 'None'), m ? h('button', { class: 'btn ghost', onclick: () => { snapshot(); p.music = null; S.musicFile = null; commit(); } }, '✕') : null));
-  if (m) { pane.appendChild(h('div', { class: 'row' }, h('label', null, 'Mode'), chips([['mix', 'Mix under clips'], ['replace', 'Music only']], m.mode || 'mix', v => { m.mode = v; saveLocal(); renderMoviePane(); }))); const [r, v] = range(m.volume || 0.3, 0.05, 1, 0.05, x => { m.volume = x; saveLocal(); }, x => Math.round(x * 100) + '%'); pane.appendChild(row('Volume', r, v)); pane.appendChild(h('div', { class: 'info' }, 'Music loops to the movie length and fades out at the end (not audible in the preview).')); }
+  if (m) pane.appendChild(h('div', { class: 'info', style: 'margin:6px 0' }, m.status || (S.musicFile ? 'ready' : 'The track is not loaded on this visit — choose it again.')));
+  if (m) { pane.appendChild(h('div', { class: 'row' }, h('label', null, 'Mode'), chips([['mix', 'Mix under clips'], ['replace', 'Music only']], m.mode || 'mix', v => { m.mode = v; saveLocal(); renderMoviePane(); }))); const [r, v] = range(m.volume || 0.3, 0.05, 1, 0.05, x => { m.volume = x; saveLocal(); $('music').volume = clamp(x, 0, 1); }, x => Math.round(x * 100) + '%'); pane.appendChild(row('Volume', r, v)); pane.appendChild(h('div', { class: 'info' }, 'The music starts with the movie, repeats until the end and fades out over the last few seconds. You hear it in the preview too.')); }
   pane.appendChild(h('div', { class: 'sec' }, 'Project'));
   const nb = h('button', { class: 'btn danger' }, 'Start a new movie');
   nb.onclick = () => { if (nb.dataset.armed) { snapshot(); S.proj = defaultProj(); S.sel = null; commit(); return; } nb.dataset.armed = '1'; nb.textContent = 'Tap again to confirm (clips stay in Photos)'; setTimeout(() => { delete nb.dataset.armed; nb.textContent = 'Start a new movie'; }, 4000); };
@@ -2717,13 +2747,14 @@ async function renderMovie(onProgress) {
     const gfi = +p.fadeIn || 0, gfo = +p.fadeOut || 0;
     if (p.music && S.musicFile) {
       try {
-        const ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000);
-        const mb = await ac.decodeAudioData(await S.musicFile.arrayBuffer());
+        if (!S.musicBuf) await checkMusic();
+        const mb = S.musicBuf; if (!mb) throw new Error(p.music.status || 'music not decodable');
+        DBG.music = { dur: +mb.duration.toFixed(1), sr: mb.sampleRate, mode: p.music.mode, vol: p.music.volume };
         const mv = +p.music.volume || 0.3; const ml = resampleTo48(mb.getChannelData(0), mb.sampleRate, 1), mr = resampleTo48(mb.getChannelData(mb.numberOfChannels > 1 ? 1 : 0), mb.sampleRate, 1);
         if (p.music.mode === 'replace') { L.fill(0); R.fill(0); }
         const fadeD = Math.min(2.5, Math.max(0.5, total / 4));
         for (let pos = 0; pos < nS; pos += ml.length) { const sliceLen = Math.min(ml.length, nS - pos); addAt([ml.subarray(0, sliceLen), mr.subarray(0, sliceLen)], pos / 48000, (t) => { const T = pos / 48000 + t; let g = mv; if (T < 0.5) g *= T / 0.5; if (T > total - fadeD) g *= Math.max(0, (total - T) / fadeD); return g; }); }
-      } catch (e) { console.warn('music', e); }
+      } catch (e) { console.warn('music', e); DBG.musicErr = String(e && e.message || e); }
     }
     for (let i = 0; i < nS; i++) { const T = i / 48000; let g = 1; if (gfi > 0 && T < gfi) g = T / gfi; if (gfo > 0 && T > total - gfo) g = Math.max(0, (total - T) / gfo); if (g !== 1) { L[i] *= g; R[i] *= g; } L[i] = clamp(L[i], -1, 1); R[i] = clamp(R[i], -1, 1); }
     let aerr = null;
@@ -2769,6 +2800,7 @@ let exporting = false, lastBlob = null;
 function openExport() {
   if (!S.proj.clips.length) { say('Add clips first'); return; }
   player.pause(); const p = S.proj, o = p.out; const md = $('exportmodal'); md.innerHTML = '';
+  md.appendChild(h('button', { class: 'mx', onclick: () => { if (!exporting) $('exportbg').classList.remove('open'); } }, '✕'));
   md.appendChild(h('h2', null, 'Export movie'));
   md.appendChild(h('div', { class: 'sub' }, 'Rendered on this phone — keep the screen on until it finishes.'));
   const opts = (label, key, list) => { const grid = h('div', { class: 'opts' }); const paint = () => grid.querySelectorAll('.opt').forEach(e => e.classList.toggle('sel', e.dataset.v === String(o[key]))); for (const [v, b, s] of list) grid.appendChild(h('div', { class: 'opt', 'data-v': String(v), onclick: () => { o[key] = v; saveLocal(); paint(); info(); if (key === 'aspect' || key === 'fit') { layoutStage(); player.refresh(); } } }, h('b', null, b), h('span', null, s))); paint(); md.appendChild(h('div', { class: 'row', style: 'align-items:flex-start' }, h('label', { style: 'padding-top:8px' }, label), grid)); };
@@ -2792,7 +2824,7 @@ async function runExport() {
     const blob = await renderMovie((frac, eta, label) => { $('bar').firstChild.style.width = Math.round(frac * 100) + '%'; $('progst').textContent = (label || 'Rendering…') + ` ${Math.round(frac * 100)}%`; $('progeta').textContent = eta != null ? `about ${eta < 60 ? Math.round(eta) + 's' : Math.ceil(eta / 60) + ' min'} left` : ''; });
     lastBlob = blob; const secs = Math.round((Date.now() - t0) / 1000);
     $('bar').firstChild.style.width = '100%'; $('progst').textContent = 'Done'; $('progeta').textContent = '';
-    md.appendChild(h('div', { class: 'done' }, `✓ Movie ready — ${(blob.size / 1e6).toFixed(1)} MB in ${secs}s`));
+    md.appendChild(h('div', { class: 'done' }, `✓ Movie ready — ${(blob.size / 1e6).toFixed(1)} MB in ${secs}s. Tap “Save to Photos / Share”, then “Save Video”.`));
     const foot = md.querySelector('.foot'); foot.innerHTML = '';
     const fname = (S.proj.name || 'movie').replace(/[^\w\- ]+/g, '_') + '.mp4';
     const file = new File([blob], fname, { type: 'video/mp4' });
@@ -2803,7 +2835,8 @@ async function runExport() {
     if (dl) foot.appendChild(h('button', { class: 'btn primary', onclick: async (ev) => { const b = ev.currentTarget; b.disabled = true; try { await dl.save({ filename: fname, data: blob }); say('Saved — choose “Save Video” if the share sheet opens', 4000); } catch (e) { if (e && e.code === 'declined') say('Not saved'); else if (e && e.code === 'too_large') say('Too large for this view — try 720p'); else say('Could not save: ' + ((e && e.message) || e)); } finally { b.disabled = false; } } }, '⬆ Save movie'));
     else if (SUPPORT.share && navigator.canShare({ files: [file] })) foot.appendChild(h('button', { class: 'btn primary', onclick: async () => { try { await navigator.share({ files: [file], title: fname }); } catch (e) { if (!/abort/i.test(String(e))) say('Share failed: ' + e.message); } } }, '⬆ Save to Photos / Share'));
     else foot.appendChild(h('a', { class: 'btn primary', href: URL.createObjectURL(blob), download: fname }, '⬇ Download'));
-    foot.appendChild(h('button', { class: 'btn ghost', onclick: () => $('exportbg').classList.remove('open') }, 'Close'));
+    foot.appendChild(h('button', { class: 'btn', onclick: () => $('exportbg').classList.remove('open') }, 'Done — back to editing'));
+    if (S.proj.music && DBG.musicErr) md.appendChild(h('div', { class: 'err' }, 'The movie was made without music: ' + DBG.musicErr));
     say('Movie rendered', 3000);
   } catch (e) {
     console.error(e);
