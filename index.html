@@ -140,7 +140,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.11</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.12</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
@@ -2111,7 +2111,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.11 · Oct 10 12:06';
+const VERSION = 'v1.12 · Oct 10 12:11';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2866,14 +2866,18 @@ async function renderMovie(onProgress) {
     for (let i = 0; i < nS; i++) { const T = i / 48000; let g = 1; if (gfi > 0 && T < gfi) g = T / gfi; if (gfo > 0 && T > total - gfo) g = Math.max(0, (total - T) / gfo); if (g !== 1) { L[i] *= g; R[i] *= g; } L[i] = clamp(L[i], -1, 1); R[i] = clamp(R[i], -1, 1); }
     let aerr = null; DBG.aChunks = 0; DBG.aMuxErr = null;
     const AAC_LC_48K_STEREO = new Uint8Array([0x11, 0x90]);        // AudioSpecificConfig: AOT 2, 48 kHz, 2 ch
-    let aMetaSeen = false;
+    let aMetaSeen = false, aMetaSeen2 = false;
     const acfg0 = { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 };
     try { const sup = await AudioEncoder.isConfigSupported(acfg0); DBG.aCfgSupported = sup.supported; if (!sup.supported) throw new Error('AAC audio encoding is not supported on this device'); } catch (e) { DBG.aEncErr = String(e && e.message || e); }
     const aenc = new AudioEncoder({ output: (chunk, meta) => {
       try {
         let m = meta;
-        if (!aMetaSeen) { aMetaSeen = true; if (!m || !m.decoderConfig || !m.decoderConfig.description) m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: AAC_LC_48K_STEREO } }; DBG.aMetaSynth = !(meta && meta.decoderConfig && meta.decoderConfig.description); }
-        muxer.addAudioChunk(chunk, m); DBG.aChunks++;
+        if (!aMetaSeen) { aMetaSeen = true; DBG.aMeta = meta && meta.decoderConfig ? { codec: meta.decoderConfig.codec, sr: meta.decoderConfig.sampleRate, ch: meta.decoderConfig.numberOfChannels, desc: meta.decoderConfig.description ? Array.from(new Uint8Array(meta.decoderConfig.description.buffer || meta.decoderConfig.description)).slice(0, 8) : null } : null; if (!m || !m.decoderConfig || !m.decoderConfig.description) m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: AAC_LC_48K_STEREO } }; DBG.aMetaSynth = !(meta && meta.decoderConfig && meta.decoderConfig.description); }
+        // some encoders hand out ADTS-framed AAC (7/9-byte transport header per frame); MP4 wants raw frames
+        let c = chunk; const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
+        if (!aMetaSeen2) { aMetaSeen2 = true; DBG.aFirst = Array.from(buf.slice(0, 4)); }
+        if (buf.length > 9 && buf[0] === 0xff && (buf[1] & 0xf6) === 0xf0) { const hdr = (buf[1] & 1) ? 7 : 9; c = new EncodedAudioChunk({ type: chunk.type, timestamp: chunk.timestamp, duration: chunk.duration, data: buf.subarray(hdr) }); DBG.aAdts = (DBG.aAdts || 0) + 1; }
+        muxer.addAudioChunk(c, m); DBG.aChunks++;
       } catch (e) { if (!DBG.aMuxErr) DBG.aMuxErr = String(e && e.message || e); }
     }, error: (e) => { aerr = e; DBG.aEncErr = String(e && e.message || e); } });
     try { if (!DBG.aEncErr) aenc.configure(acfg0); else aerr = new Error(DBG.aEncErr); } catch (e) { aerr = e; DBG.aEncErr = String(e && e.message || e); }
