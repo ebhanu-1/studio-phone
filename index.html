@@ -48,24 +48,27 @@
   #empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; color:#9aa3b0; padding:20px; font-size:14px; }
   #empty b { color:#cdd3dc; }
   #empty.off { display:none; }
-  #transport { height:44px; flex:0 0 auto; display:flex; align-items:center; gap:4px; padding:0 10px; background:#171a21; color:#d7dbe3; }
+  #transport { height:40px; flex:0 0 auto; display:flex; align-items:center; gap:4px; padding:0 10px; background:#171a21; color:#d7dbe3; }
   #transport button { background:transparent; border:0; color:#e7eaf0; width:36px; height:36px; border-radius:9px; font-size:16px; }
   #transport #play { background:#fff; color:#111; width:40px; height:36px; }
   #transport .tc { font-variant-numeric:tabular-nums; font-size:13px; color:#c9ced8; margin-left:4px; }
   #transport .tc b { color:#fff; font-weight:600; }
   #transport .spacer { flex:1; }
   /* tools row */
-  #tools { flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:6px 10px; background:#eceef2; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-  #tools .btn { padding:7px 11px; font-size:13px; }
+  #tools { flex:0 0 auto; display:flex; align-items:center; gap:5px; padding:5px 8px; background:#eceef2; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  #tools .btn { padding:6px 10px; font-size:12.5px; }
   /* timeline */
-  #tlwrap { flex:0 0 auto; height:118px; background:#eceef2; position:relative; }
+  #tlwrap { flex:0 0 auto; height:100px; background:#eceef2; position:relative; }
   #trrow { flex:0 0 auto; display:flex; align-items:center; gap:6px; padding:6px 10px; background:#eceef2; border-top:1px solid var(--line); overflow-x:auto; }
-  #trrow .lab { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
-  #tl { position:absolute; inset:0; overflow-x:auto; overflow-y:hidden; padding:14px 12px 0; -webkit-overflow-scrolling:touch; touch-action:pan-x; overscroll-behavior-x:contain; }
+  #trrow .lab { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
+  #trrow .chip { white-space:nowrap; padding:5px 10px; font-size:12px; }
+  #trrow .chips { flex-wrap:nowrap; }
+  #tl { position:absolute; inset:0; overflow-x:auto; overflow-y:hidden; padding:12px 12px 0; -webkit-overflow-scrolling:touch; touch-action:pan-x; overscroll-behavior-x:contain; }
   .seg { touch-action:pan-x; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-  #track { position:relative; height:84px; display:flex; align-items:flex-start; gap:4px; min-width:100%; }
-  .seg { position:relative; height:76px; border-radius:9px; overflow:hidden; flex:0 0 auto; border:2px solid transparent; background:#cfd4dc center/auto 100% repeat-x; }
+  #track { position:relative; height:72px; display:flex; align-items:flex-start; gap:4px; min-width:100%; }
+  .seg { position:relative; height:66px; border-radius:9px; overflow:hidden; flex:0 0 auto; border:2px solid transparent; background:#cfd4dc center/auto 100% repeat-x; }
   .seg.card { background:#1b2330; }
+  .seg.add { width:64px; background:var(--panel); border:2px dashed var(--line2); display:flex; align-items:center; justify-content:center; font-size:26px; color:var(--accent); cursor:pointer; }
   .seg.card .ct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:12px; padding:6px; text-align:center; }
   .seg.sel { border-color:var(--accent); box-shadow:0 0 0 3px rgba(37,99,235,.35); }
   .seg.lift { opacity:.55; transform:scale(1.04); z-index:5; transition:transform .12s; }
@@ -137,9 +140,8 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.8</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Studio <span id="ver" title="version · build time">v1.9</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
-  <label class="btn" for="pick">＋ Clips</label>
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
   <button class="btn primary" id="export">Export</button>
@@ -153,7 +155,7 @@
     <video id="vA" playsinline preload="auto"></video>
     <video id="vB" playsinline preload="auto"></video>
     <canvas id="ov"></canvas>
-    <div id="empty"><div><b>No clips yet.</b><br><br>Tap <b>＋ Clips</b> to pick videos from your Photos library.<br>Everything stays on this phone.</div></div>
+    <div id="empty"><div><b>No clips yet.</b><br><br><label class="btn primary" for="pick" style="display:inline-block;font-size:16px;padding:12px 20px">＋ Add clips from Photos</label><br><br>Everything stays on this phone.</div></div>
   </div>
 </div>
 <div id="transport">
@@ -2109,7 +2111,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.8 · Oct 10 11:55';
+const VERSION = 'v1.9 · Oct 10 11:59';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2315,7 +2317,7 @@ function syncMusicPreview() {
 /* ── stage + player ────────────────────────────────────────────────── */
 function layoutStage() {
   const wrap = $('stagewrap'), fr = $('frame'); const ar = outAspect();
-  const vw = wrap.clientWidth || window.innerWidth; const appH = document.body.clientHeight || window.innerHeight; const maxH = Math.min(appH * 0.36, 420);
+  const vw = wrap.clientWidth || window.innerWidth; const appH = document.body.clientHeight || window.innerHeight; const maxH = Math.min(appH * 0.27, 320);
   let w = vw, hh = w / ar; if (hh > maxH) { hh = maxH; w = hh * ar; }
   wrap.style.height = Math.round(Math.min(maxH, hh)) + 'px'; fr.style.width = Math.round(w) + 'px'; fr.style.height = Math.round(hh) + 'px';
   const ov = $('ov'); const dpr = Math.min(2, window.devicePixelRatio || 1); ov.width = Math.round(w * dpr); ov.height = Math.round(hh * dpr);
@@ -2405,13 +2407,13 @@ function drawOverlay(T) {
 function updateTC() { $('tc').textContent = fmt(S.T); $('tot').textContent = fmt(S.total); const seg = segAt(S.T); const lbl = $('stagelbl'); if (!seg) { lbl.textContent = ''; return; } if (seg.kind === 'card') lbl.textContent = seg.uid === 'title' ? 'Title card' : 'End card'; else { const i = S.proj.clips.indexOf(seg.clip); lbl.textContent = `Clip ${i + 1} of ${S.proj.clips.length} · ${clipName(seg.clip)}` + (seg.clip.uid === S.sel ? '' : '  (tap to select)'); } }
 
 /* ── timeline (touch) ───────────────────────────────────────────────── */
-function pps() { const avail = Math.max(240, $('tl').clientWidth - 30); return S.total > 0 ? Math.max(10, avail / S.total) : 20; }
-const TRANSITIONS = [['none', 'Cut'], ['fade', 'Dissolve'], ['black', 'Fade to black'], ['wipe', 'Wipe'], ['slide', 'Slide']];
+function pps() { const avail = Math.max(200, $('tl').clientWidth - 100); return S.total > 0 ? Math.max(10, avail / S.total) : 20; }
+const TRANSITIONS = [['none', 'Cut'], ['fade', 'Dissolve'], ['black', 'To black'], ['wipe', 'Wipe'], ['slide', 'Slide']];
 function renderTrRow() { const box = $('trchips'); if (!box) return; box.innerHTML = ''; const c = chips(TRANSITIONS, S.proj.transition || 'none', v => { snapshot(); S.proj.transition = v; commit(); }); c.style.flexWrap = 'nowrap'; box.appendChild(c); }
 function renderTimeline() {
   renderTrRow();
   computeSegs(); const track = $('track'); track.innerHTML = ''; const P = pps();
-  track.style.width = Math.max($('tl').clientWidth - 30, S.total * P + 10) + 'px';
+  track.style.width = Math.max($('tl').clientWidth - 30, S.total * P + 80) + 'px';
   for (const seg of S.segs) {
     const w = Math.max(56, seg.dur * P);
     const el = h('div', { class: 'seg' + (seg.kind === 'card' ? ' card' : '') + (seg.uid === S.sel ? ' sel' : ''), style: `width:${w}px`, 'data-uid': seg.uid });
@@ -2430,6 +2432,7 @@ function renderTimeline() {
     }
     track.appendChild(el);
   }
+  const addEl = h('label', { class: 'seg add', for: 'pick', title: 'Add clips from Photos' }, '＋'); track.appendChild(addEl);
   updatePlayhead();
   const sel = S.proj.clips.find(c => c.uid === S.sel);
   ['split', 'setin', 'setout', 'addtext', 'remove', 'movel', 'mover'].forEach(id => $(id).disabled = !sel);
@@ -2820,6 +2823,8 @@ async function renderMovie(onProgress) {
     let aerr = null; DBG.aChunks = 0; DBG.aMuxErr = null;
     const AAC_LC_48K_STEREO = new Uint8Array([0x11, 0x90]);        // AudioSpecificConfig: AOT 2, 48 kHz, 2 ch
     let aMetaSeen = false;
+    const acfg0 = { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 };
+    try { const sup = await AudioEncoder.isConfigSupported(acfg0); DBG.aCfgSupported = sup.supported; if (!sup.supported) throw new Error('AAC audio encoding is not supported on this device'); } catch (e) { DBG.aEncErr = String(e && e.message || e); }
     const aenc = new AudioEncoder({ output: (chunk, meta) => {
       try {
         let m = meta;
@@ -2827,7 +2832,7 @@ async function renderMovie(onProgress) {
         muxer.addAudioChunk(chunk, m); DBG.aChunks++;
       } catch (e) { if (!DBG.aMuxErr) DBG.aMuxErr = String(e && e.message || e); }
     }, error: (e) => { aerr = e; DBG.aEncErr = String(e && e.message || e); } });
-    aenc.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 });
+    try { if (!DBG.aEncErr) aenc.configure(acfg0); else aerr = new Error(DBG.aEncErr); } catch (e) { aerr = e; DBG.aEncErr = String(e && e.message || e); }
     const FR = 1024;
     for (let off = 0; off < nS; off += FR * 8) {
       const n = Math.min(FR * 8, nS - off); const data = new Float32Array(n * 2); data.set(L.subarray(off, off + n), 0); data.set(R.subarray(off, off + n), n);
@@ -2941,7 +2946,7 @@ $('exportbg').addEventListener('click', (e) => { if (e.target.id === 'exportbg' 
 function init() {
   try { $('ver').textContent = VERSION.split(' · ')[0]; $('ver').title = VERSION; } catch {}
   player.init(); layoutStage();
-  try { const saved = JSON.parse(localStorage.getItem('studio.phone.proj') || 'null'); if (saved && saved.proj) { S.proj = Object.assign(defaultProj(), saved.proj); S.proj.clips = []; if (S.proj.music) S.proj.music.status = '⚠ ' + S.proj.music.name + ' is not loaded on this visit — tap “Change track…” and pick it again.'; $('name').value = S.proj.name; } } catch {}
+  try { const saved = JSON.parse(localStorage.getItem('studio.phone.proj') || 'null'); if (saved && saved.proj) { S.proj = Object.assign(defaultProj(), saved.proj); S.proj.clips = []; S.proj.music = null; /* the file can't survive a reload — start without music rather than show a stale one */ $('name').value = S.proj.name; } } catch {}
   try { const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches; if (!standalone && /iPhone|iPad/.test(navigator.userAgent) && !localStorage.getItem('studio.phone.tip')) { $('tip').classList.add('on'); $('tip-x').onclick = () => { $('tip').classList.remove('on'); try { localStorage.setItem('studio.phone.tip', '1'); } catch {} layoutStage(); }; } } catch {}
   commit(); renderInspector();
   window.addEventListener('resize', () => { layoutStage(); renderTimeline(); drawOverlay(S.T); });
