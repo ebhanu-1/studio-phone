@@ -133,6 +133,13 @@
   .done { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; border-radius:10px; padding:12px 14px; margin-top:12px; font-weight:600; }
   .err { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; border-radius:10px; padding:12px 14px; margin-top:12px; white-space:pre-wrap; font-size:13px; }
   .foot { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+  #saving { position:fixed; inset:0; z-index:600; background:rgba(16,24,40,.72); display:none; align-items:center; justify-content:center; text-align:center; color:#fff; padding:30px; }
+  #saving.on { display:flex; }
+  #saving .box { background:#1b2330; border-radius:16px; padding:22px 24px; max-width:320px; }
+  #saving .spin { width:34px; height:34px; border-radius:50%; border:4px solid rgba(255,255,255,.2); border-top-color:#60a5fa; animation:spin .9s linear infinite; margin:0 auto 12px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #saving b { font-size:16px; display:block; margin-bottom:6px; }
+  #saving span { font-size:13px; color:#c9ced8; }
   #toast { position:fixed; left:50%; bottom:calc(90px + var(--sab)); transform:translateX(-50%); z-index:9999; background:#1b2330; color:#fff; padding:10px 16px; border-radius:12px; font-size:13px; font-weight:500; opacity:0; transition:opacity .2s; pointer-events:none; max-width:90vw; text-align:center; }
   #toast.on { opacity:1; }
   @media (min-width: 900px) { body { flex-direction:row; flex-wrap:wrap; } #top { width:100%; } #stagewrap, #transport, #tools, #tlwrap { width:62%; } #sheet { width:38%; border-left:1px solid var(--line); height:calc(100vh - 50px); } }
@@ -140,7 +147,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.12</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.13</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
@@ -175,6 +182,7 @@
   <div id="panes"><div class="pane active" id="pane-clip"></div><div class="pane" id="pane-text"></div><div class="pane" id="pane-movie"></div></div>
 </div>
 <div class="mbg" id="exportbg"><div class="modal" id="exportmodal"></div></div>
+<div id="saving"><div class="box"><div class="spin"></div><b>Saving to Photos…</b><span>Please stay on this screen until it finishes. Choose “Save Video” if the sheet asks.</span></div></div>
 <div id="toast"></div>
 <audio id="music" preload="auto" style="display:none"></audio>
 
@@ -2107,11 +2115,12 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = (s) => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), sec = s % 60; return `${m}:${sec.toFixed(1).padStart(4, '0')}`; };
 const fmtL = (s) => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
+const savingOverlay = (on) => { $('saving').classList.toggle('on', !!on); };
 const status = (m) => { const el = $('status'); if (!el) return; el.textContent = m || ''; el.classList.toggle('on', !!m); };
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.12 · Oct 10 12:11';
+const VERSION = 'v1.13 · Oct 10 12:12';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2935,8 +2944,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 /* ── saving the finished movie (two routes; the last export stays available) ── */
 function saveButtons(ex, dl) {
   const out = [];
-  if (dl) out.push(h('button', { class: 'btn primary', onclick: async (ev) => { const b = ev.currentTarget; b.disabled = true; try { await dl.save({ filename: ex.fname, data: ex.blob }); say('Choose “Save Video” in the sheet that opens', 4000); } catch (e) { if (e && e.code === 'declined') say('Not saved'); else if (e && e.code === 'too_large') say('Too large for this view — try 720p'); else say('Could not save: ' + ((e && e.message) || e)); } finally { b.disabled = false; } } }, '⬆ Save movie'));
-  else if (SUPPORT.share && navigator.canShare({ files: [ex.file] })) out.push(h('button', { class: 'btn primary', onclick: async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = 'Saving… keep this screen open'; status('Saving to Photos — stay here until the sheet closes'); try { await navigator.share({ files: [ex.file], title: ex.fname }); status(''); say('✓ Handed to Photos (if you chose “Save Video”)', 4000); b.textContent = '✓ Saved — save again?'; } catch (e) { status(''); b.textContent = '⬆ Save to Photos'; if (!/abort/i.test(String(e))) say('Share failed: ' + e.message); else say('Cancelled'); } finally { b.disabled = false; } } }, '⬆ Save to Photos'));
+  if (dl) out.push(h('button', { class: 'btn primary', onclick: async (ev) => { const b = ev.currentTarget; b.disabled = true; savingOverlay(true); try { await dl.save({ filename: ex.fname, data: ex.blob }); say('Choose “Save Video” in the sheet that opens', 4000); } catch (e) { if (e && e.code === 'declined') say('Not saved'); else if (e && e.code === 'too_large') say('Too large for this view — try 720p'); else say('Could not save: ' + ((e && e.message) || e)); } finally { savingOverlay(false); b.disabled = false; } } }, '⬆ Save movie'));
+  else if (SUPPORT.share && navigator.canShare({ files: [ex.file] })) out.push(h('button', { class: 'btn primary', onclick: async (ev) => { const b = ev.currentTarget; b.disabled = true; b.textContent = 'Saving…'; savingOverlay(true); try { await navigator.share({ files: [ex.file], title: ex.fname }); say('✓ Handed to Photos (if you chose “Save Video”)', 4000); b.textContent = '✓ Saved — save again?'; } catch (e) { b.textContent = '⬆ Save to Photos'; if (!/abort/i.test(String(e))) say('Share failed: ' + e.message); else say('Cancelled'); } finally { savingOverlay(false); b.disabled = false; } } }, '⬆ Save to Photos'));
   if (!dl) { if (!ex.url) ex.url = URL.createObjectURL(ex.blob); out.push(h('a', { class: 'btn', href: ex.url, download: ex.fname }, '⬇ Save to Files')); }
   return out;
 }
