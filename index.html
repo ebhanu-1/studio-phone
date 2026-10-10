@@ -38,7 +38,7 @@
   #name:focus { border-color:var(--line2); background:#fff; outline:none; text-align:left; }
   #ver { font-size:10px; font-weight:600; color:var(--faint); letter-spacing:.02em; flex:0 0 auto; }
   #undo, #redo { font-size:20px; padding:8px 4px; min-width:36px; }
-  @media (max-width: 430px) { #ver { display:none; } #back { padding-left:4px; } }
+  @media (max-width: 430px) { #ver { display:none; } #back span { display:none; } #back { padding:8px 10px 8px 10px; } #name { text-align:left; } }
   #status { display:none; padding:6px 12px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:600; border-bottom:1px solid var(--line); }
   #status.on { display:block; }
   #missing { display:none; padding:8px 12px; background:#fffbeb; color:#92400e; font-size:13px; font-weight:600; border-bottom:1px solid #fde68a; align-items:center; gap:10px; }
@@ -79,6 +79,7 @@
   #trrow .chip { white-space:nowrap; padding:7px 11px; font-size:12.5px; min-height:36px; }
   #trrow .chips { flex-wrap:nowrap; flex:0 0 auto; }
   #trrow .sep { width:1px; height:24px; background:var(--line2); margin:0 4px; flex:0 0 auto; }
+  #trchips { display:flex; align-items:center; gap:6px; flex:0 0 auto; }
   #tl { position:absolute; inset:0; overflow-x:auto; overflow-y:hidden; padding:14px 12px 0; -webkit-overflow-scrolling:touch; touch-action:pan-x; overscroll-behavior-x:contain; }
   #track { position:relative; height:88px; display:flex; align-items:flex-start; gap:4px; min-width:100%; }
   .seg { touch-action:pan-x; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; position:relative; height:66px; border-radius:9px; overflow:hidden; flex:0 0 auto; border:2px solid transparent; background:#cfd4dc center/auto 100% repeat-x; transition:height .12s; }
@@ -95,6 +96,7 @@
   .seg.sel .nm { left:34px; right:34px; }
   .seg .dur { position:absolute; right:5px; top:4px; font-size:10px; font-weight:600; color:#fff; background:rgba(0,0,0,.55); padding:1px 5px; border-radius:4px; pointer-events:none; }
   .seg.sel .dur { right:36px; }
+  .seg.sel.narrow .dur, .seg.sel.narrow .bd, .seg.sel.narrow .nm { display:none; }
   .seg .bd { position:absolute; left:5px; top:4px; display:flex; gap:3px; pointer-events:none; }
   .seg.sel .bd { left:36px; }
   .seg .bd span { font-size:9.5px; font-weight:700; color:#fff; background:rgba(37,99,235,.9); padding:1px 5px; border-radius:4px; }
@@ -227,9 +229,9 @@
 </head>
 <body>
 <div id="top">
-  <button class="btn ghost" id="back" title="All movies"><b>‹</b> Projects</button>
+  <button class="btn ghost" id="back" title="All movies"><b>‹</b><span> Projects</span></button>
   <input id="name" type="text" value="my movie" placeholder="Movie name" title="Tap to rename">
-  <span id="ver" title="version · build time">v2.0</span>
+  <span id="ver" title="version · build time">v2.1</span>
   <button class="btn ghost" id="undo" title="Undo" disabled>↶</button><button class="btn ghost" id="redo" title="Redo" disabled>↷</button>
   <button class="btn primary" id="export">Export</button>
 </div>
@@ -249,7 +251,7 @@
 </div>
 <div id="scrub"><div class="rail"></div><div class="fill"></div><div class="knob"></div></div>
 <div id="transport">
-  <button id="tostart" title="Go to start">⏮</button><button id="prevf" title="Back one frame">‹</button><button id="play">▶</button><button id="nextf" title="Forward one frame">›</button>
+  <button id="tostart" title="Go to start"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:block;margin:auto"><rect x="4" y="5" width="3" height="14" rx="1"/><path d="M20 5.5v13a1 1 0 0 1-1.6.8l-9-6.5a1 1 0 0 1 0-1.6l9-6.5A1 1 0 0 1 20 5.5z"/></svg></button><button id="prevf" title="Back one frame">‹</button><button id="play">▶</button><button id="nextf" title="Forward one frame">›</button>
   <span class="tc"><b id="tc">0:00.0</b> / <span id="tot">0:00.0</span></span>
   <span class="spacer"></span>
   <span class="zoom"><button id="zoomout" title="Zoom timeline out">－</button><button id="zoomfit" title="Fit the whole movie">⤢</button><button id="zoomin" title="Zoom timeline in">＋</button></span>
@@ -262,7 +264,7 @@
   <div id="panes"><div class="pane active" id="pane-clip"></div><div class="pane" id="pane-text"></div><div class="pane" id="pane-movie"></div></div>
 </div>
 <div id="home">
-  <div class="hd"><div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <small id="hver">v2.0</small></div><button class="btn ghost" id="help-btn" title="How Clipper works">? Help</button></div>
+  <div class="hd"><div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <small id="hver">v2.1</small></div><button class="btn ghost" id="help-btn" title="How Clipper works">? Help</button></div>
   <div id="home-body"></div>
 </div>
 <div class="mbg" id="exportbg"><div class="modal" id="exportmodal"></div></div>
@@ -2210,7 +2212,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v2.0 · Oct 10 15:58';
+const VERSION = 'v2.1 · Oct 10 17:07';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -2296,9 +2298,10 @@ function kenBurns(kb, prog) {
   return { s: 1 + 0.12 * k, dx: (kb === 'out' ? -1 : 1) * (e - 0.5) * 0.04, dy: (e - 0.5) * 0.015 };
 }
 // draws a photo (an ImageBitmap/canvas with f.w×f.h, already EXIF-upright) into W×H with the chosen fit + motion
+function photoFit(fit, sw, sh, W, H) { if (fit !== 'blur') return fit; const r = (sw / sh) / (W / H); return (r > 1 / 1.45 && r < 1.45) ? 'fill' : 'blur'; }   // a 4:3 photo fills a 16:9 movie; a portrait photo in a landscape movie keeps blurred edges
 function drawPhoto(ctx, W, H, f, prog, fit, blurCache, kb) {
   const img = f.bitmap; if (!img) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); return; }
-  const sw = f.w, sh = f.h; const same = Math.abs(sw / sh - W / H) < 0.015; const z = kenBurns(kb, prog);
+  const sw = f.w, sh = f.h; fit = photoFit(fit, sw, sh, W, H); const same = Math.abs(sw / sh - W / H) < 0.015; const z = kenBurns(kb, prog);
   const base = (fit === 'fill' && !same) ? Math.max(W / sw, H / sh) : Math.min(W / sw, H / sh);
   const bw = sw * base, bh = sh * base;                     // the picture at rest
   ctx.save();
@@ -2349,9 +2352,11 @@ function segAt(T) { let cur = null; for (const s of S.segs) { const sw = s.start
 function outAspect() {
   const a = S.proj.out.aspect; const map = { '16:9': 16 / 9, '9:16': 9 / 16, '1:1': 1 };
   if (map[a]) return map[a];
-  const dims = S.proj.clips.map(fileOf).filter(Boolean).map(f => [f.w, f.h]);
+  const fs = S.proj.clips.map(fileOf).filter(Boolean); const vids = fs.filter(f => f.kind !== 'photo');
+  const dims = (vids.length ? vids : fs).map(f => [f.w, f.h]);          // videos decide the shape; photos only when there are no videos
   if (!dims.length) return 16 / 9;
   const vertical = dims.filter(d => d[1] > d[0]).length > dims.length / 2;
+  if (!vids.length) return vertical ? 9 / 16 : 16 / 9;                   // a photo-only movie gets a normal screen shape, not the photos' 4:3
   const pool = dims.filter(d => (d[1] > d[0]) === vertical);
   const big = (pool.length ? pool : dims).reduce((m, d) => (!m || d[0] * d[1] > m[0] * m[1]) ? d : m, null);
   return big[0] / big[1];
@@ -2710,7 +2715,7 @@ function renderTools() {
   const box = $('tools'); box.innerHTML = ''; const c = selClip();
   if (c) {
     const f = fileOf(c) || {};
-    box.append(h('button', { class: 'btn', id: 'split', onclick: splitAtPlayhead }, '✂ Split'), h('button', { class: 'btn', id: 'setin', onclick: () => trimAtPlayhead('in') }, '[ In'), h('button', { class: 'btn', id: 'setout', onclick: () => trimAtPlayhead('out') }, 'Out ]'),
+    box.append(h('button', { class: 'btn', id: 'split', onclick: splitAtPlayhead }, 'Split'), h('button', { class: 'btn', id: 'setin', onclick: () => trimAtPlayhead('in') }, '[ In'), h('button', { class: 'btn', id: 'setout', onclick: () => trimAtPlayhead('out') }, 'Out ]'),
       h('button', { class: 'btn', id: 'addtext', onclick: addTextToSel }, 'T Text'), h('button', { class: 'btn', id: 'movel', onclick: () => moveSel(-1), title: 'Move earlier' }, '◀'), h('button', { class: 'btn', id: 'mover', onclick: () => moveSel(1), title: 'Move later' }, '▶'),
       h('button', { class: 'btn danger', id: 'remove', onclick: removeSel }, 'Remove'));
     if (f.missing) { $('split').disabled = $('setin').disabled = $('setout').disabled = true; }
@@ -2724,7 +2729,7 @@ function renderTimeline() {
   track.style.width = Math.max($('tl').clientWidth - 30, S.total * P + 80) + 'px';
   for (const seg of S.segs) {
     const w = Math.max(56, seg.dur * P);
-    const el = h('div', { class: 'seg' + (seg.kind === 'card' ? ' card' : '') + (seg.photo ? ' photo' : '') + (seg.uid === S.sel ? ' sel' : '') + (seg.uid === S.sel && S.selText && seg.kind === 'clip' && (seg.clip.texts || []).some(t => t.uid === S.selText) ? ' hastext' : ''), style: `width:${w}px`, 'data-uid': seg.uid });
+    const el = h('div', { class: 'seg' + (w < 130 ? ' narrow' : '') + (seg.kind === 'card' ? ' card' : '') + (seg.photo ? ' photo' : '') + (seg.uid === S.sel ? ' sel' : '') + (seg.uid === S.sel && S.selText && seg.kind === 'clip' && (seg.clip.texts || []).some(t => t.uid === S.selText) ? ' hastext' : ''), style: `width:${w}px`, 'data-uid': seg.uid });
     if (seg.kind === 'card') { el.appendChild(h('div', { class: 'ct' }, seg.card.text || (seg.uid === 'title' ? 'Title' : 'End'))); el.appendChild(h('span', { class: 'dur' }, fmt(seg.dur))); el.onclick = () => { S.sel = seg.uid; setTab('movie'); renderTimeline(); }; }
     else {
       const c = seg.clip, f = fileOf(c);
@@ -2929,7 +2934,7 @@ function renderMoviePane() {
   const m = p.music; const mp = h('input', { type: 'file', accept: 'audio/*,.m4a,.mp3,.aac,.wav', style: 'display:none', onchange: async (e) => { const f = e.target.files[0]; if (!f) return; snapshot(); S.musicFile = f; S.musicBuf = null; p.music = { name: f.name, mode: (m && m.mode) || 'mix', volume: (m && m.volume) || 0.3, offset: 0, status: 'checking…' }; commit(); await checkMusic(); commit(); } });
   pane.appendChild(mp);
   pane.appendChild(h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => mp.click() }, m ? 'Change track…' : 'Choose track…'), h('span', { style: 'flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:' + (m ? 'var(--text)' : 'var(--faint)') }, m ? m.name + (S.musicFile ? '' : ' (re-choose the file)') : 'None'), m ? h('button', { class: 'btn ghost', onclick: () => { snapshot(); p.music = null; S.musicFile = null; commit(); } }, '✕') : null));
-  if (m) pane.appendChild(h('div', { class: 'info', style: 'margin:6px 0' + (S.musicFile ? '' : ';background:#fffbeb;border-color:#fde68a;color:#92400e') }, S.musicFile ? (m.status || 'ready') : ('⚠ ' + m.name + ' is not loaded on this visit — tap “Change track…” and pick it again.')));
+  if (m) pane.appendChild(h('div', { class: 'info', style: 'margin:6px 0' + (S.musicFile ? '' : ';background:#fffbeb;border-color:#fde68a;color:#92400e') }, S.musicFile ? (m.status || 'ready') : (m.name + ' is not loaded on this visit — tap “Change track…” and pick it again.')));
   if (m) {
     pane.appendChild(h('div', { class: 'row' }, h('label', null, 'Mode'), chips([['mix', 'Mix under clips'], ['replace', 'Music only']], m.mode || 'mix', v => { m.mode = v; saveLocal(); renderMoviePane(); })));
     const [r, v] = range(m.volume || 0.3, 0.05, 1, 0.05, x => { m.volume = x; saveLocal(); $('music').volume = clamp(x, 0, 1); }, x => Math.round(x * 100) + '%'); pane.appendChild(row('Volume', r, v));
@@ -2951,7 +2956,7 @@ async function loadLists() {
 }
 function showHome() { player.pause(); S.view = 'home'; $('home').classList.add('on'); document.body.classList.add('home'); clearTimeout(saveT); persistProject().finally(() => loadLists().then(renderHome)); renderHome(); }
 function showEditor() { S.view = 'editor'; $('home').classList.remove('on'); document.body.classList.remove('home'); $('name').value = S.proj.name; setTab('clip'); commit(); renderInspector(); }
-function thumbEl(src, icon) { const el = h('div', { class: 'th' }, src ? null : (icon || '🎬')); if (src) el.style.backgroundImage = `url(${src})`; return el; }
+function thumbEl(src, icon) { const el = h('div', { class: 'th' }, src ? null : (icon || '')); if (src) el.style.backgroundImage = `url(${src})`; return el; }
 function renderHome() {
   const box = $('home-body'); box.innerHTML = '';
   box.appendChild(h('button', { class: 'btn primary big wide', onclick: newMovie }, '＋ New movie'));
@@ -2962,13 +2967,14 @@ function renderHome() {
   if (!S.exports.length) box.appendChild(h('div', { class: 'note' }, 'Rendered movies are kept here until you delete them, ready to save to Photos again.'));
   for (const ex of S.exports) {
     const card = h('div', { class: 'card ex', style: 'cursor:default' }, thumbEl(ex.thumb, '▶'), h('div', { class: 'ct' }, h('div', { class: 't' }, ex.fname), h('div', { class: 'm' }, `${dateStr(ex.date)} · ${fmtL(ex.dur)} · ${(ex.size / 1e6).toFixed(1)} MB`)),
-      h('div', { class: 'acts2' }, h('button', { class: 'btn primary save', onclick: (e) => saveExport(ex, e.currentTarget) }, '⬆ Save to Photos'), h('button', { class: 'btn ghost x', title: 'Delete this export', onclick: () => deleteExport(ex) }, '✕')));
+      h('div', { class: 'acts2' }, h('button', { class: 'btn primary save', onclick: (e) => saveExport(ex, e.currentTarget) }, 'Save to Photos'), h('button', { class: 'btn ghost x', title: 'Delete this export', onclick: () => deleteExport(ex) }, '✕')));
     box.appendChild(card);
   }
   if (S.exports.length) box.appendChild(h('div', { class: 'note' }, `${S.exports.length} export${S.exports.length > 1 ? 's' : ''} · ${(S.exports.reduce((a, x) => a + (x.size || 0), 0) / 1e6).toFixed(0)} MB on this phone`));
+  box.appendChild(h('div', { class: 'info', style: 'margin-top:18px' }, 'Where things live: your clips and photos stay in the Photos app — Clipper only remembers which ones a movie uses (and small thumbnails). Rendered exports are kept in Safari’s private storage for this site on this phone until you delete them here; save them to Photos to keep them for good. Nothing is uploaded anywhere.'));
 }
 function resetEditorState() { S.sel = null; S.selText = null; S.T = 0; S.undo.length = 0; S.redo.length = 0; S.zoom = 1; S.musicFile = null; S.musicBuf = null; S.touched = false; try { const au = $('music'); au.pause(); au.removeAttribute('src'); delete au.dataset.name; } catch {} for (const v of player.vids) { v.pause(); v.removeAttribute('src'); delete v.dataset.src; v.classList.remove('on'); } }
-function newMovie() { resetEditorState(); S.files = {}; S.proj = defaultProj(); showEditor(); }
+function newMovie() { resetEditorState(); S.files = {}; S.proj = defaultProj(); const base = S.proj.name; let k = 2; const taken = new Set((S.projects || []).map(p => p.name)); while (taken.has(S.proj.name)) S.proj.name = `${base} ${k++}`; showEditor(); }
 async function openProject(id) {
   let rec = null; try { rec = await DB.get('projects', id); } catch {}
   if (!rec) { say('Could not open that movie'); return; }
@@ -3491,7 +3497,7 @@ async function runExport() {
     S.lastExport = ex; await rememberExport(ex);
     md.appendChild(h('div', { class: 'done' }, `✓ Movie ready — ${(blob.size / 1e6).toFixed(1)} MB in ${secs}s. It is also kept under Exports on the home screen.`, h('div', { class: 'rep' }, 'Sound: ' + snd), h('button', { class: 'btn', style: 'margin-top:8px;min-height:36px;padding:6px 12px;font-size:13px', onclick: async (ev) => { try { await navigator.clipboard.writeText(report); say('Report copied — paste it to Claude'); } catch { ev.currentTarget.textContent = report; } } }, 'Copy report')));
     const foot = md.querySelector('.foot'); foot.innerHTML = ''; foot.classList.add('stack');
-    foot.appendChild(h('button', { class: 'btn primary big wide', onclick: (ev) => saveExport(ex, ev.currentTarget) }, '⬆ Save to Photos'));
+    foot.appendChild(h('button', { class: 'btn primary big wide', onclick: (ev) => saveExport(ex, ev.currentTarget) }, 'Save to Photos'));
     foot.appendChild(h('button', { class: 'btn wide', onclick: () => $('exportbg').classList.remove('open') }, 'Done'));
     if (S.proj.music && DBG.musicErr) md.appendChild(h('div', { class: 'err' }, 'The movie was made without music: ' + DBG.musicErr));
     say('Movie rendered', 3000);
@@ -3515,7 +3521,7 @@ function openHelp(first) {
     h('div', { class: 'step' }, h('div', null, h('b', null, 'Add clips and photos'), h('span', null, 'Tap ＋ and pick from Photos. They land in the order they were shot. Photos show for 4 seconds with a slow zoom.'))),
     h('div', { class: 'step' }, h('div', null, h('b', null, 'Trim, split, caption'), h('span', null, 'Tap a clip: drag its blue ends to trim, Split at the playhead, T for a caption. Tap a caption on the picture to edit it, drag it up or down to move it. Pinch the timeline to zoom.'))),
     h('div', { class: 'step' }, h('div', null, h('b', null, 'Export, then Save to Photos'), h('span', null, 'Export renders the movie here on the phone. Then tap Save to Photos and choose “Save Video”. Exports stay on the home screen until you delete them.')))));
-  md.appendChild(h('div', { class: 'info' }, 'Tips: ↶ ↷ undo and redo anything. “Between clips” under the timeline sets the transition. Music lives in the Movie tab. Add Clipper to your Home Screen (Share → Add to Home Screen) for a full-screen app that also opens offline.'));
+  md.appendChild(h('div', { class: 'info' }, 'Your clips stay in Photos; Clipper only remembers which ones each movie uses. Exports are kept on the home screen (in Safari’s storage for this site) until you delete them. Tips: ↶ ↷ undo and redo anything. “Between clips” under the timeline sets the transition. Music lives in the Movie tab. Add Clipper to your Home Screen (Share → Add to Home Screen) for a full-screen app that also opens offline.'));
   md.appendChild(h('div', { class: 'foot' }, h('button', { class: 'btn primary big', onclick: closeHelp }, first ? 'Get started' : 'Got it')));
   $('helpbg').classList.add('open');
 }
