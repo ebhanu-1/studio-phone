@@ -119,7 +119,7 @@
   /* inspector sheet */
   #sheet { flex:1 1 auto; min-height:160px; display:flex; flex-direction:column; background:var(--panel); border-top:1px solid var(--line); }
   #tabs { display:flex; padding:4px 8px 0; border-bottom:1px solid var(--line); flex:0 0 auto; }
-  #tabs button { flex:1; padding:12px 6px; border:0; background:transparent; color:var(--muted); font-weight:600; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; min-height:44px; }
+  #tabs button { flex:1; padding:12px 2px; border:0; background:transparent; color:var(--muted); font-weight:600; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; min-height:44px; }
   #tabs button.active { color:var(--text); border-bottom-color:var(--accent); }
   #panes { flex:1 1 auto; overflow:auto; padding:12px 14px calc(90px + var(--sab)); -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   .pane { display:none; } .pane.active { display:block; }
@@ -231,7 +231,7 @@
 <div id="top">
   <button class="btn ghost" id="back" title="All movies"><b>‹</b><span> Projects</span></button>
   <input id="name" type="text" value="my movie" placeholder="Movie name" title="Tap to rename">
-  <span id="ver" title="version · build time">v2.1</span>
+  <span id="ver" title="version · build time">v2.2</span>
   <button class="btn ghost" id="undo" title="Undo" disabled>↶</button><button class="btn ghost" id="redo" title="Redo" disabled>↷</button>
   <button class="btn primary" id="export">Export</button>
 </div>
@@ -258,13 +258,12 @@
 </div>
 <div id="tools"></div>
 <div id="tlwrap"><div id="tl"><div id="track"></div><div id="ph"><div class="hit"></div></div></div></div>
-<div id="trrow"><span class="lab">Between clips</span><span id="trchips"></span></div>
 <div id="sheet">
-  <div id="tabs"><button data-tab="clip" class="active">Clip</button><button data-tab="text">Text</button><button data-tab="movie">Movie</button></div>
-  <div id="panes"><div class="pane active" id="pane-clip"></div><div class="pane" id="pane-text"></div><div class="pane" id="pane-movie"></div></div>
+  <div id="tabs"><button data-tab="clip" class="active">Clip</button><button data-tab="text">Text</button><button data-tab="trans">Transitions</button><button data-tab="movie">Movie</button></div>
+  <div id="panes"><div class="pane active" id="pane-clip"></div><div class="pane" id="pane-text"></div><div class="pane" id="pane-trans"></div><div class="pane" id="pane-movie"></div></div>
 </div>
 <div id="home">
-  <div class="hd"><div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <small id="hver">v2.1</small></div><button class="btn ghost" id="help-btn" title="How Clipper works">? Help</button></div>
+  <div class="hd"><div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <small id="hver">v2.2</small></div><button class="btn ghost" id="help-btn" title="How Clipper works">? Help</button></div>
   <div id="home-body"></div>
 </div>
 <div class="mbg" id="exportbg"><div class="modal" id="exportmodal"></div></div>
@@ -2212,7 +2211,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v2.1 · Oct 10 17:07';
+const VERSION = 'v2.2 · Oct 10 17:09';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -2562,7 +2561,7 @@ function layoutStage() {
   const wrap = $('stagewrap'), fr = $('frame'); const ar = outAspect();
   const vw = wrap.clientWidth || window.innerWidth; const appH = document.body.clientHeight || window.innerHeight;
   // everything except the picture and the panel is fixed-height; the panel must keep ≥ 230 px (it sits beside the picture when wide)
-  const ids = wide() ? ['top', 'status', 'missing', 'tip', 'scrub', 'transport', 'tools', 'tlwrap', 'trrow'] : ['top', 'status', 'missing', 'tip', 'scrub', 'transport', 'tools', 'tlwrap', 'trrow', 'tabs'];
+  const ids = wide() ? ['top', 'status', 'missing', 'tip', 'scrub', 'transport', 'tools', 'tlwrap'] : ['top', 'status', 'missing', 'tip', 'scrub', 'transport', 'tools', 'tlwrap', 'tabs'];
   const fixed = ids.reduce((a, id) => a + (($(id) && $(id).offsetHeight) || 0), 0);
   const maxH = clamp(appH - fixed - (wide() ? 8 : 230), 90, wide() ? 900 : 320);
   let w = vw, hh = w / ar; if (hh > maxH) { hh = maxH; w = hh * ar; }
@@ -2706,10 +2705,16 @@ $('zoomfit').onclick = () => { S.zoom = 1; renderTimeline(); $('tl').scrollLeft 
   tl.addEventListener('gesturestart', (e) => e.preventDefault());
 })();
 const TRANSITIONS = [['none', 'Cut'], ['fade', 'Dissolve'], ['black', 'To black'], ['wipe', 'Wipe'], ['slide', 'Slide']];
-function renderTrRow() {
-  const box = $('trchips'); if (!box) return; box.innerHTML = ''; const p = S.proj;
-  const c = chips(TRANSITIONS, p.transition || 'none', v => { snapshot(); p.transition = v; commit(); }); box.appendChild(c);
-  if (p.transition && p.transition !== 'none') { box.appendChild(h('span', { class: 'sep' })); box.appendChild(chips([[0.3, '0.3s'], [0.5, '0.5s'], [1, '1s'], [1.5, '1.5s']], +p.tdur || 0.5, v => { snapshot(); p.tdur = v; commit(); })); }
+function renderTransPane() {
+  const pane = $('pane-trans'); if (!pane) return; pane.innerHTML = ''; const p = S.proj;
+  pane.appendChild(h('div', { class: 'sec' }, 'Between clips'));
+  pane.appendChild(h('div', { class: 'row' }, chips(TRANSITIONS, p.transition || 'none', v => { snapshot(); p.transition = v; commit(); setTab('trans'); })));
+  if (p.transition && p.transition !== 'none') {
+    pane.appendChild(h('div', { class: 'sec' }, 'Length'));
+    pane.appendChild(h('div', { class: 'row' }, chips([[0.3, '0.3s'], [0.5, '0.5s'], [1, '1s'], [1.5, '1.5s']], +p.tdur || 0.5, v => { snapshot(); p.tdur = v; commit(); setTab('trans'); })));
+  }
+  const desc = { none: 'Clips follow each other directly.', fade: 'Each clip dissolves into the next; the sound crossfades too.', black: 'Each clip fades to black, then the next fades in.', wipe: 'The next clip wipes in from the left.', slide: 'The next clip slides in from the right.' };
+  pane.appendChild(h('div', { class: 'info' }, (desc[p.transition] || desc.none) + ' The same transition is used between every pair of clips, including the title and end cards.'));
 }
 function renderTools() {
   const box = $('tools'); box.innerHTML = ''; const c = selClip();
@@ -2724,7 +2729,7 @@ function renderTools() {
   }
 }
 function renderTimeline() {
-  renderTrRow(); renderTools();
+  renderTools();
   computeSegs(); const track = $('track'); track.innerHTML = ''; const P = pps();
   track.style.width = Math.max($('tl').clientWidth - 30, S.total * P + 80) + 'px';
   for (const seg of S.segs) {
@@ -2855,7 +2860,7 @@ const range = (value, min, max, step, oninput, f) => { const v = h('span', { cla
 const chips = (opts, value, onpick) => { const box = h('div', { class: 'chips' }); for (const [v, l] of opts) box.appendChild(h('button', { class: 'chip' + (String(v) === String(value) ? ' on' : ''), onclick: () => onpick(v) }, l)); return box; };
 // chips that look like the thing they pick: [value, label, className, inlineStyle]
 const lookChips = (opts, value, onpick) => { const box = h('div', { class: 'chips scroll' }); for (const [v, l, cls, st] of opts) box.appendChild(h('button', { class: 'chip look ' + (cls || '') + (String(v) === String(value) ? ' on' : ''), style: st || '', onclick: () => onpick(v) }, h('span', null, l))); return box; };
-function renderInspector() { renderClipPane(); renderTextPane(); renderMoviePane(); }
+function renderInspector() { renderClipPane(); renderTextPane(); renderTransPane(); renderMoviePane(); }
 function renderClipPane() {
   const pane = $('pane-clip'); pane.innerHTML = ''; const c = selClip();
   if (!c) { pane.appendChild(h('div', { class: 'note' }, S.proj.clips.length ? 'Tap a clip in the timeline to adjust it.' : 'Add clips or photos to start your movie.')); return; }
@@ -2929,7 +2934,6 @@ function renderMoviePane() {
   pane.appendChild(h('div', { class: 'sec' }, 'Whole movie'));
   pane.appendChild(h('div', { class: 'row' }, h('label', null, 'Fade in'), chips([[0, 'none'], [0.5, '0.5s'], [1, '1s'], [2, '2s']], +p.fadeIn || 0, v => { snapshot(); p.fadeIn = v; commit(); })));
   pane.appendChild(h('div', { class: 'row' }, h('label', null, 'Fade out'), chips([[0, 'none'], [0.5, '0.5s'], [1, '1s'], [2, '2s']], +p.fadeOut || 0, v => { snapshot(); p.fadeOut = v; commit(); })));
-  pane.appendChild(h('div', { class: 'info' }, 'Transitions between clips are in the row under the timeline.'));
   pane.appendChild(h('div', { class: 'sec' }, 'Music'));
   const m = p.music; const mp = h('input', { type: 'file', accept: 'audio/*,.m4a,.mp3,.aac,.wav', style: 'display:none', onchange: async (e) => { const f = e.target.files[0]; if (!f) return; snapshot(); S.musicFile = f; S.musicBuf = null; p.music = { name: f.name, mode: (m && m.mode) || 'mix', volume: (m && m.volume) || 0.3, offset: 0, status: 'checking…' }; commit(); await checkMusic(); commit(); } });
   pane.appendChild(mp);
@@ -3521,7 +3525,7 @@ function openHelp(first) {
     h('div', { class: 'step' }, h('div', null, h('b', null, 'Add clips and photos'), h('span', null, 'Tap ＋ and pick from Photos. They land in the order they were shot. Photos show for 4 seconds with a slow zoom.'))),
     h('div', { class: 'step' }, h('div', null, h('b', null, 'Trim, split, caption'), h('span', null, 'Tap a clip: drag its blue ends to trim, Split at the playhead, T for a caption. Tap a caption on the picture to edit it, drag it up or down to move it. Pinch the timeline to zoom.'))),
     h('div', { class: 'step' }, h('div', null, h('b', null, 'Export, then Save to Photos'), h('span', null, 'Export renders the movie here on the phone. Then tap Save to Photos and choose “Save Video”. Exports stay on the home screen until you delete them.')))));
-  md.appendChild(h('div', { class: 'info' }, 'Your clips stay in Photos; Clipper only remembers which ones each movie uses. Exports are kept on the home screen (in Safari’s storage for this site) until you delete them. Tips: ↶ ↷ undo and redo anything. “Between clips” under the timeline sets the transition. Music lives in the Movie tab. Add Clipper to your Home Screen (Share → Add to Home Screen) for a full-screen app that also opens offline.'));
+  md.appendChild(h('div', { class: 'info' }, 'Your clips stay in Photos; Clipper only remembers which ones each movie uses. Exports are kept on the home screen (in Safari’s storage for this site) until you delete them. Tips: ↶ ↷ undo and redo anything. Transitions have their own tab; music lives in the Movie tab. Add Clipper to your Home Screen (Share → Add to Home Screen) for a full-screen app that also opens offline.'));
   md.appendChild(h('div', { class: 'foot' }, h('button', { class: 'btn primary big', onclick: closeHelp }, first ? 'Get started' : 'Got it')));
   $('helpbg').classList.add('open');
 }
