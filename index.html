@@ -147,7 +147,7 @@
 </head>
 <body>
 <div id="top">
-  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.13</span></div>
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 26 26" fill="none"><rect x="1" y="1" width="24" height="24" rx="6.5" fill="#2563eb"/><circle cx="13" cy="13" r="6.4" stroke="#fff" stroke-width="1.7"/><circle cx="13" cy="13" r="2.1" fill="#fff"/></svg>Clipper <span id="ver" title="version · build time">v1.14</span></div>
   <input id="name" type="text" value="my movie" style="border:1px solid transparent;border-radius:8px;padding:5px 6px;font-weight:600;background:transparent;font-size:14px">
   <input id="pick" type="file" accept="video/*,video/quicktime,.mov,.mp4,.m4v" multiple style="display:none">
   <button class="btn" id="savelast" style="display:none">⬆ Save last movie</button>
@@ -2120,7 +2120,7 @@ const status = (m) => { const el = $('status'); if (!el) return; el.textContent 
 let toastT = null;
 const say = (m, ms) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), ms || 2600); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v1.13 · Oct 10 12:12';
+const VERSION = 'v1.14 · Oct 10 12:14';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare) };
 
 /* ── fonts / text layout (ports studio_movie.py exactly) ───────────── */
@@ -2881,7 +2881,16 @@ async function renderMovie(onProgress) {
     const aenc = new AudioEncoder({ output: (chunk, meta) => {
       try {
         let m = meta;
-        if (!aMetaSeen) { aMetaSeen = true; DBG.aMeta = meta && meta.decoderConfig ? { codec: meta.decoderConfig.codec, sr: meta.decoderConfig.sampleRate, ch: meta.decoderConfig.numberOfChannels, desc: meta.decoderConfig.description ? Array.from(new Uint8Array(meta.decoderConfig.description.buffer || meta.decoderConfig.description)).slice(0, 8) : null } : null; if (!m || !m.decoderConfig || !m.decoderConfig.description) m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: AAC_LC_48K_STEREO } }; DBG.aMetaSynth = !(meta && meta.decoderConfig && meta.decoderConfig.description); }
+        if (!aMetaSeen) {
+          aMetaSeen = true;
+          const d = meta && meta.decoderConfig; const raw = d && d.description ? new Uint8Array(d.description.buffer ? d.description.buffer.slice(d.description.byteOffset || 0, (d.description.byteOffset || 0) + d.description.byteLength) : d.description) : null;
+          DBG.aMeta = d ? { codec: d.codec, sr: d.sampleRate, ch: d.numberOfChannels, descLen: raw ? raw.length : 0, desc: raw ? Array.from(raw.slice(0, 6)).map(x => x.toString(16).padStart(2, '0')).join(' ') : null } : null;
+          // Safari hands over a whole ES_Descriptor (tag 0x03) instead of the bare
+          // AudioSpecificConfig; MP4 wants the bare 2–5 bytes. Unwrap, else use the known config.
+          const asc = audioSpecificConfig(raw) || AAC_LC_48K_STEREO;
+          DBG.aMetaSynth = !raw || asc === AAC_LC_48K_STEREO; DBG.aAsc = Array.from(asc).map(x => x.toString(16).padStart(2, '0')).join(' ');
+          m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: asc } };
+        }
         // some encoders hand out ADTS-framed AAC (7/9-byte transport header per frame); MP4 wants raw frames
         let c = chunk; const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
         if (!aMetaSeen2) { aMetaSeen2 = true; DBG.aFirst = Array.from(buf.slice(0, 4)); }
@@ -2940,6 +2949,23 @@ async function checkForUpdate(auto) {
 }
 setTimeout(() => checkForUpdate(true), 1500);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(true); });
+
+// pull the AudioSpecificConfig out of whatever the encoder gave us
+function audioSpecificConfig(raw) {
+  if (!raw || !raw.length) return null;
+  const plausible = (u) => u && u.length >= 2 && u.length <= 7 && ((u[0] >> 3) >= 1 && (u[0] >> 3) <= 6);
+  if (plausible(raw) && raw[0] !== 0x03) return raw;
+  if (raw[0] === 0x03) {                    // ES_Descriptor → DecoderConfigDescriptor → DecoderSpecificInfo (tag 5)
+    let p = 0; const rdlen = () => { let n = 0; for (let k = 0; k < 4; k++) { const x = raw[p++]; n = (n << 7) | (x & 0x7f); if (!(x & 0x80)) break; } return n; };
+    try {
+      p++; rdlen(); p += 2; const fl = raw[p++]; if (fl & 0x80) p += 2; if (fl & 0x40) p += raw[p] + 1; if (fl & 0x20) p += 2;
+      if (raw[p++] !== 0x04) return null; rdlen(); p += 13;
+      if (raw[p++] !== 0x05) return null; const n = rdlen(); const dsi = raw.slice(p, p + n);
+      return plausible(dsi) ? dsi : null;
+    } catch { return null; }
+  }
+  return null;
+}
 
 /* ── saving the finished movie (two routes; the last export stays available) ── */
 function saveButtons(ex, dl) {
@@ -3026,7 +3052,7 @@ function init() {
   if (!SUPPORT.webcodecs) say('This browser cannot render video. On iPhone use Safari (iOS 16.4+).', 8000);
 }
 init();
-window.__phone = { DBG, S, addFiles, checkMusic, decodeMp3WebCodecs, stripId3, renderMovie, computeSegs, drawText, drawCard, outSize, SUPPORT, player, splitAtPlayhead, trimAtPlayhead, addTextToSel, get lastBlob() { return lastBlob; } };
+window.__phone = { DBG, S, addFiles, checkMusic, audioSpecificConfig, decodeMp3WebCodecs, stripId3, renderMovie, computeSegs, drawText, drawCard, outSize, SUPPORT, player, splitAtPlayhead, trimAtPlayhead, addTextToSel, get lastBlob() { return lastBlob; } };
 })();
 </script>
 </body>
