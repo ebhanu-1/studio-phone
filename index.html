@@ -302,6 +302,8 @@
   #saving .box { background:var(--surface); border-radius:16px; padding:22px 24px; max-width:300px; box-shadow:0 10px 40px rgba(0,0,0,.2); }
   #saving .spin { width:30px; height:30px; border-radius:50%; border:3px solid var(--tint); border-top-color:var(--accent); animation:spin .9s linear infinite; margin:0 auto 12px; }
   @keyframes spin { to { transform:rotate(360deg); } }
+  .leave { width:100%; max-width:520px; background:var(--surface); border-radius:18px 18px 0 0; padding:20px 16px calc(16px + var(--sab)); display:flex; flex-direction:column; gap:8px; }
+  .leave b { font-size:20px; font-weight:600; text-align:center; } .leave p { font-size:15px; color:var(--muted); text-align:center; margin:2px 8px 10px; line-height:1.4; }
   .savedok { position:fixed; inset:0; z-index:700; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.18); padding:30px; }
   .savedok .box { background:var(--surface); border-radius:18px; padding:22px 26px; text-align:center; max-width:280px; box-shadow:0 10px 40px rgba(0,0,0,.2); }
   .savedok i { width:54px; height:54px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; }
@@ -318,9 +320,9 @@
 </head>
 <body>
 <div id="top">
-  <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Movies</span></button>
+  <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Clipper</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v3.3</span>
+  <span id="ver" title="version · build time">v3.4</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -356,7 +358,7 @@
   <div id="panes"><div class="pane" id="pane-clip"></div><div class="pane" id="pane-trans"></div><div class="pane" id="pane-movie"></div></div>
 </div>
 <div id="home">
-  <div id="homenav"><span class="inl">Movies</span><button class="lnk" id="edit-btn">Edit</button><button class="lnk" id="help-btn">Help</button></div>
+  <div id="homenav"><span class="inl">Clipper</span><button class="lnk" id="edit-btn">Edit</button><button class="lnk" id="help-btn">Help</button></div>
   <div id="home-body"></div>
 </div>
 <div class="mbg" id="exportbg"><div class="modal" id="exportmodal"></div></div>
@@ -2304,7 +2306,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v3.3 · Oct 11 10:18';
+const VERSION = 'v3.4 · Oct 11 10:27';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -2508,11 +2510,69 @@ let saveT = null;
 function saveLocal() { LS.set('clipper.current', S.proj.id); clearTimeout(saveT); saveT = setTimeout(persistProject, 400); }
 function projectRecord() {
   const p = S.proj; const files = {};
-  for (const c of p.clips) { const f = fileOf(c); if (f && !files[f.id]) files[f.id] = { id: f.id, name: f.name, size: f.size, lastModified: f.lastModified || 0, dur: f.dur, w: f.w, h: f.h, kind: f.kind || 'video', thumb: (f.thumbs && f.thumbs[0]) || null }; }
+  for (const c of p.clips) { const f = fileOf(c); if (f && !files[f.id]) files[f.id] = { id: f.id, name: f.name, size: f.size, lastModified: f.lastModified || 0, dur: f.dur, w: f.w, h: f.h, kind: f.kind || 'video', thumb: (f.thumbs && f.thumbs[0]) || null, kept: !!f.kept }; }
   const first = p.clips.map(fileOf).find(f => f && f.thumbs && f.thumbs.length);
-  return { id: p.id, name: p.name, created: p.created || Date.now(), updated: Date.now(), clips: p.clips.length, dur: S.total, thumb: first ? first.thumbs[0] : null, proj: p, files: Object.values(files) };
+  const bytes = Object.values(files).reduce((a, f) => a + (f.kept ? f.size || 0 : 0), 0) + (p.music && p.music.kept ? p.music.size || 0 : 0);
+  return { id: p.id, name: p.name, created: p.created || Date.now(), updated: Date.now(), clips: p.clips.length, dur: S.total, thumb: first ? first.thumbs[0] : null, proj: p, files: Object.values(files), bytes };
 }
-async function persistProject() { if (!S.proj.clips.length && !S.touched) return; try { await DB.put('projects', projectRecord()); } catch (e) { DBG.dbErr = String(e && e.message || e); } }
+async function persistProject() { if (!S.proj.kept) return; try { await DB.put('projects', projectRecord()); } catch (e) { DBG.dbErr = String(e && e.message || e); } syncKept(); }
+/* ── Saved work: a saved movie keeps its own copy of its clips (and song) in Clipper's private storage, so it
+   reopens ready to edit. Only saved movies and listed exports occupy space; everything else is cleaned up. ── */
+const KEEP = {
+  clip: (pid, fid) => `clip_${pid}_${fid}`, music: (pid) => `music_${pid}`,
+  async copy(file, name, onProg) {
+    const sink = await DiskSink.create(name); if (!sink) throw new Error('This browser can’t keep clips on the phone');
+    try { let at = 0; while (at < file.size) { const end = Math.min(file.size, at + CHUNK); const u8 = new Uint8Array(await file.slice(at, end).arrayBuffer()); sink.write(at, u8); at = end; await sink.drain(16 * 1024 * 1024); if (onProg) onProg(at / file.size); } await sink.close(); }
+    catch (e) { await sink.abort(); throw e; }
+  },
+  async file(name, as, type) { const root = await navigator.storage.getDirectory(); const fh = await root.getFileHandle(name); const f = await fh.getFile(); return new File([f], as || name, { type: type || f.type, lastModified: f.lastModified }); },
+  async names() { const out = []; try { const root = await navigator.storage.getDirectory(); for await (const k of root.keys()) out.push(k); } catch {} return out; },
+};
+let keepBusy = false, keepAgain = false;
+async function syncKept() {
+  if (!S.proj.kept) return; if (keepBusy) { keepAgain = true; return; } keepBusy = true;
+  const p = S.proj, pid = p.id;
+  try {
+    do {
+      keepAgain = false;
+      const used = new Map(); for (const c of p.clips) { const f = fileOf(c); if (f) used.set(f.id, f); }
+      const todo = [...used.values()].filter(f => !f.kept && f.file && !f.missing); let n = 0;
+      for (const f of todo) {
+        n++; const lab = `Saving clips for later — ${n} of ${todo.length}`; status(lab);
+        await KEEP.copy(f.file, KEEP.clip(pid, f.id), (x) => status(`${lab} (${Math.round(x * 100)}%)`)); f.kept = true;
+        if (S.proj.id !== pid) return;
+      }
+      if (p.music && S.musicFile && !p.music.kept) { status('Saving the song for later…'); await KEEP.copy(S.musicFile, KEEP.music(pid)); p.music.kept = true; p.music.size = S.musicFile.size; }
+      // free what this movie no longer uses (removed clips, a replaced or removed song)
+      for (const name of await KEEP.names()) {
+        if (name.startsWith(`clip_${pid}_`) && !used.has(name.slice(`clip_${pid}_`.length))) await DiskSink.remove(name);
+        if (name === KEEP.music(pid) && !(p.music && p.music.kept)) await DiskSink.remove(name);
+      }
+      if (todo.length || (p.music && p.music.kept)) { try { await DB.put('projects', projectRecord()); } catch {} }
+    } while (keepAgain && S.proj.id === pid);
+  } catch (e) { DBG.keepErr = String(e && e.message || e); say('Could not save the clips: ' + DBG.keepErr, 5000); }
+  finally { keepBusy = false; status(''); }
+}
+async function saveForLater() {
+  if (!S.proj.clips.length) { say('Add clips first'); return; }
+  if (!SUPPORT.opfs) { say('This browser can’t keep clips on the phone'); return; }
+  try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch {}
+  S.proj.kept = true; updateTC(); renderMoviePane();
+  try { await DB.put('projects', projectRecord()); } catch {}
+  await syncKept();
+  if (S.proj.kept && !DBG.keepErr) confirmSaved('Saved to finish later', 'It’s on the home screen under Saved work. Your edits keep saving from now on.');
+}
+// keep only what the home screen shows: saved movies (and their files) and listed exports
+async function tidyStorage() {
+  let recs = []; try { recs = await DB.all('projects'); } catch { return; }
+  const kept = new Set(); for (const r of recs) { if (r.proj && r.proj.kept) kept.add(r.id); else { try { await DB.del('projects', r.id); } catch {} } }
+  let exps = []; try { exps = await DB.all('exports'); } catch {} const exNames = new Set(exps.map(e => e.opfs).filter(Boolean)); if (S.lastExport && S.lastExport.opfs) exNames.add(S.lastExport.opfs);
+  for (const name of await KEEP.names()) {
+    const m = /^(?:clip|music)_([^_]+)/.exec(name);
+    if (m && !kept.has(m[1]) && m[1] !== S.proj.id) await DiskSink.remove(name);
+    else if (/^export_/.test(name) && !exNames.has(name) && !exporting) await DiskSink.remove(name);
+  }
+}
 
 /* ── files (Photos picker): videos and photos, landing in date order ───── */
 const isVideoFile = (f) => /video|quicktime/.test(f.type) || /\.(mov|mp4|m4v)$/i.test(f.name);
@@ -2825,7 +2885,7 @@ function drawOverlay(T) {
   for (const [t, a] of st.texts) drawText(ctx, W, H, t, a, S.textBoxes);
   if (st.dark > 0) { ctx.fillStyle = `rgba(0,0,0,${st.dark.toFixed(3)})`; ctx.fillRect(0, 0, W, H); }
 }
-function updateTC() { $('tc').textContent = fmt(S.T); $('tot').textContent = fmt(S.total); const n = S.proj.clips.length; $('navsub').textContent = `${n} clip${n === 1 ? '' : 's'} · ${fmtL(S.total)}`; updateScrub(); const seg = liveSegs(S.T).cur; const f = seg && seg.kind === 'clip' ? fileOf(seg.clip) : null; const ml = $('misslbl'); if (f && f.missing) { ml.classList.add('on'); ml.querySelector('span').textContent = `Clip ${S.proj.clips.indexOf(seg.clip) + 1} of ${n}`; } else ml.classList.remove('on'); }
+function updateTC() { $('tc').textContent = fmt(S.T); $('tot').textContent = fmt(S.total); const n = S.proj.clips.length; $('navsub').textContent = `${n} clip${n === 1 ? '' : 's'} · ${fmtL(S.total)}` + (S.proj.kept ? ' · saved' : ''); updateScrub(); const seg = liveSegs(S.T).cur; const f = seg && seg.kind === 'clip' ? fileOf(seg.clip) : null; const ml = $('misslbl'); if (f && f.missing) { ml.classList.add('on'); ml.querySelector('span').textContent = `Clip ${S.proj.clips.indexOf(seg.clip) + 1} of ${n}`; } else ml.classList.remove('on'); }
 // tap a caption on the picture to edit it; drag it up/down to move (snaps to top / middle / lower / bottom)
 $('frame').addEventListener('pointerdown', (ev) => {
   if (!S.segs.length) return;
@@ -3095,6 +3155,8 @@ function renderTransPane() {
 }
 function renderMoviePane() {
   const pane = $('pane-movie'); pane.innerHTML = ''; const p = S.proj;
+  if (p.kept) pane.appendChild(grp('Saved work', null, list(lrow('Saved to finish later', h('span', { class: 'v' }, `${Math.max(1, Math.round(projectRecord().bytes / 1e6))} MB`))), h('div', { class: 'note' }, 'Every change saves on its own. Delete it from the home screen when you no longer need it.')));
+  else pane.appendChild(grp('Saved work', null, h('button', { class: 'bbtn tint', onclick: saveForLater }, 'Save to finish later'), h('div', { class: 'note' }, 'Keeps a copy of this movie’s clips on the phone, with all your edits, so you can come back and keep editing. Uses about ' + Math.max(1, Math.round(([...new Set(S.proj.clips.map(fileOf).filter(Boolean))].reduce((a, f) => a + (f.size || 0), 0) + (S.musicFile ? S.musicFile.size : 0)) / 1e6)) + ' MB.')));
   const cardFields = (card, isTitle) => {
     const live = () => { saveLocal(); overlayKey = null; drawOverlay(S.T); renderTimeline(); };
     const tx = h('input', { type: 'text', placeholder: isTitle ? 'Title' : 'The End', oninput: (e) => { card.text = e.target.value; live(); } }); tx.value = card.text || '';
@@ -3154,7 +3216,7 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '
 
 /* ── projects home: recent movies + exports ─────────────────────────── */
 async function loadLists() {
-  try { S.projects = (await DB.all('projects')).sort((a, b) => (b.updated || 0) - (a.updated || 0)); } catch (e) { DBG.dbErr = String(e && e.message || e); S.projects = []; }
+  try { S.projects = (await DB.all('projects')).filter(r => r.proj && r.proj.kept).sort((a, b) => (b.updated || 0) - (a.updated || 0)); } catch (e) { DBG.dbErr = String(e && e.message || e); S.projects = []; }
   try { S.exports = (await DB.all('exports')).sort((a, b) => (b.date || 0) - (a.date || 0)); } catch { S.exports = []; }
   if (S.memExports) S.exports = S.memExports.filter(x => !S.exports.find(y => y.id === x.id)).concat(S.exports);
 }
@@ -3175,15 +3237,15 @@ function swipeRow(row, mv, onOpen) {
 }
 function renderHome() {
   const box = $('home-body'); box.innerHTML = '';
-  box.appendChild(h('div', { class: 'lt' }, 'Movies', h('small', { id: 'hver', title: VERSION }, VERSION.split(' · ')[0])));
+  box.appendChild(h('div', { class: 'lt' }, 'Clipper', h('small', { id: 'hver', title: VERSION }, VERSION.split(' · ')[0])));
   box.appendChild(h('button', { class: 'hero', onclick: newMovie }, h('b', null, 'New movie'), h('span', null, 'Choose clips and photos from your library'), h('i', { html: IC.plusBig })));
-  box.appendChild(h('div', { class: 'hsec' }, h('b', null, 'Recent'), h('span', null, S.projects.length ? plural(S.projects.length, 'movie') : '')));
-  if (!S.projects.length) box.appendChild(h('div', { class: 'hnote' }, SUPPORT.idb ? 'Movies you make show up here. They stay on this phone.' : 'This browser cannot keep movies between visits.'));
-  else {
+  if (S.projects.length) {
+    const mb = S.projects.reduce((a, p) => a + (p.bytes || 0), 0) / 1e6;
+    box.appendChild(h('div', { class: 'hsec' }, h('b', null, 'Saved work'), h('span', null, `${plural(S.projects.length, 'movie')} · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`)));
     const lst = h('div', { class: 'hlist' });
     for (const p of S.projects) {
       const del = h('button', { class: 'del', onclick: (e) => { e.stopPropagation(); deleteProject(p); } }, 'Delete');
-      const mv = h('div', { class: 'mv' }, h('button', { class: 'edx', title: 'Delete', html: '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6h8" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>', onclick: (e) => { e.stopPropagation(); deleteProject(p); } }), thumbEl(p.thumb), h('div', { class: 'ct' }, h('div', { class: 't' }, p.name || 'movie'), h('div', { class: 'm' }, `${dayStr(p.updated)} · ${plural(p.clips || 0, 'clip')} · ${fmtL(p.dur)}`)), ic('chev'));
+      const mv = h('div', { class: 'mv' }, h('button', { class: 'edx', title: 'Delete', html: '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6h8" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>', onclick: (e) => { e.stopPropagation(); deleteProject(p); } }), thumbEl(p.thumb), h('div', { class: 'ct' }, h('div', { class: 't' }, p.name || 'movie'), h('div', { class: 'm' }, `${dayStr(p.updated)} · ${plural(p.clips || 0, 'clip')} · ${fmtL(p.dur)} · ${Math.max(1, Math.round((p.bytes || 0) / 1e6))} MB`)), ic('chev'));
       const row = h('div', { class: 'mrow' }, del, mv);
       swipeRow(row, mv, () => { if (!S.homeEdit) openProject(p.id); });
       lst.appendChild(row);
@@ -3203,7 +3265,7 @@ function renderHome() {
     }
     box.appendChild(lst);
   }
-  box.appendChild(h('div', { class: 'hfoot' }, 'Your clips stay in Photos. Clipper only remembers which ones each movie uses — nothing is copied or uploaded. Finished movies stay here until you delete them; save them to Photos to keep them for good.'));
+  box.appendChild(h('div', { class: 'hfoot' }, 'A movie is kept only if you tap “Save to finish later”; then Clipper keeps a copy of its clips on this phone so it reopens ready to edit. Finished movies stay under Exports until you delete them. Deleting frees the space; your originals always stay in Photos. Nothing is uploaded.'));
   box.appendChild(h('div', { class: 'hlist', style: 'margin-top:18px' }, h('div', { class: 'lrow tap', onclick: () => openHelp() }, h('span', { class: 'k' }, 'How Clipper works'), ic('chev'))));
 }
 $('home-body').addEventListener('scroll', () => $('home').classList.toggle('scrolled', $('home-body').scrollTop > 36), { passive: true });
@@ -3217,15 +3279,29 @@ async function openProject(id) {
   for (const f of rec.files || []) S.files[f.id] = Object.assign({}, f, { file: null, url: null, bitmap: null, missing: true, thumbs: f.thumb ? [f.thumb] : [], strip: f.thumb || null });
   S.proj = Object.assign(defaultProj(), rec.proj, { id: rec.id }); S.proj.clips = (S.proj.clips || []).filter(c => S.files[c.fileId]); S.touched = true; migrateCaptions();
   showEditor();
+  const kept = Object.values(S.files).filter(f => f.kept); let n = 0;
+  for (const f of kept) {
+    status(`Opening ${++n} of ${kept.length}…`);
+    try { const file = await KEEP.file(KEEP.clip(rec.id, f.id), f.name, f.kind === 'photo' ? '' : (/\.mov$/i.test(f.name) ? 'video/quicktime' : 'video/mp4')); await attachFile(f, file); } catch (e) { f.kept = false; DBG.keepErr = String(e && e.message || e); }
+  }
+  if (S.proj.music && S.proj.music.kept) { try { S.musicFile = await KEEP.file(KEEP.music(rec.id), S.proj.music.name); await checkMusic(); } catch { S.proj.music.kept = false; } }
+  status(''); commit(); thumbsFor(Object.keys(S.files));
 }
 async function deleteProject(p) {
+  let ok = true; try { ok = confirm(`Delete “${p.name}”? Its saved copy is removed from this phone. Your originals stay in Photos.`); } catch {}
+  if (!ok) return;
   try { await DB.del('projects', p.id); } catch {}
-  S.projects = S.projects.filter(x => x.id !== p.id); renderHome();
-  say(`Deleted “${p.name}”`, 6000, { label: 'Undo', fn: async () => { try { await DB.put('projects', p); } catch {} await loadLists(); renderHome(); } });
+  for (const name of await KEEP.names()) if (name.startsWith(`clip_${p.id}_`) || name === KEEP.music(p.id)) await DiskSink.remove(name);
+  S.projects = S.projects.filter(x => x.id !== p.id); renderHome(); say(`Deleted “${p.name}”`, 3000);
 }
 // re-pick: the Photos picker opens; picked files are matched to the movie's clips by name + size (+ date)
 function repickClips() { S.repick = true; $('pick').click(); }
 $('missing-pick').onclick = repickClips;
+async function attachFile(m, file) {
+  if (m.kind === 'photo') { const meta = await loadPhoto(file); Object.assign(m, meta, { file, size: file.size, missing: false }); }
+  else { const url = URL.createObjectURL(file); const meta = await probeVideo(url).catch((e) => { URL.revokeObjectURL(url); throw e; }); Object.assign(m, meta, { file, url, size: file.size, missing: false }); }
+  m.thumbs = []; m.strip = null; delete m._img;
+}
 async function matchFiles(list) {
   const files = Array.from(list || []); const missing = Object.values(S.files).filter(f => f.missing); const leftovers = []; let n = 0;
   for (const file of files) {
@@ -3243,7 +3319,16 @@ async function matchFiles(list) {
   const still = missingClips().length;
   say(still ? `${still} clip${still > 1 ? 's' : ''} still missing — pick again or remove them` : 'All clips are back', 4000);
 }
-$('back').onclick = showHome; $('help-btn').onclick = openHelp;
+$('back').onclick = () => {
+  if (S.proj.kept || !S.proj.clips.length) { showHome(); return; }
+  const bg = h('div', { class: 'mbg open', style: 'align-items:flex-end' });
+  const close = () => bg.remove();
+  bg.appendChild(h('div', { class: 'leave' }, h('b', null, 'Keep this movie?'), h('p', null, 'It isn’t saved. Save it to finish later, or leave without saving. Movies you exported stay on the home screen either way.'),
+    h('button', { class: 'bbtn', onclick: async () => { close(); await saveForLater(); showHome(); } }, 'Save to finish later'),
+    h('button', { class: 'bbtn quiet red', onclick: () => { close(); showHome(); } }, 'Leave without saving'),
+    h('button', { class: 'bbtn quiet', style: 'background:transparent', onclick: close }, 'Keep editing')));
+  bg.addEventListener('click', (e) => { if (e.target === bg) close(); }); document.body.appendChild(bg);
+}; $('help-btn').onclick = openHelp;
 
 /* ── exports kept on the device (OPFS) ─────────────────────────────── */
 async function exportFile(ex) {
@@ -3845,7 +3930,7 @@ function init() {
   try { const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches; if (!standalone && /iPhone|iPad/.test(navigator.userAgent) && !LS.get('clipper.tip')) { $('tip').classList.add('on'); $('tip-x').onclick = () => { $('tip').classList.remove('on'); LS.set('clipper.tip', '1'); layoutStage(); }; } } catch {}
   computeSegs(); renderInspector();
   window.addEventListener('resize', () => { if (S.view === 'home') return; layoutStage(); renderTimeline(); drawOverlay(S.T); });
-  showHome();
+  showHome(); tidyStorage().then(() => loadLists()).then(() => { if (S.view === 'home') renderHome(); }).catch(() => {});
   if (!LS.get('clipper.seen')) setTimeout(() => openHelp(true), 400);
   if (!SUPPORT.webcodecs) say('This browser cannot render video. On iPhone use Safari (iOS 16.4+).', 8000);
 }
