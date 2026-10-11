@@ -322,7 +322,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Clipper</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v3.4</span>
+  <span id="ver" title="version · build time">v3.5</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -358,7 +358,7 @@
   <div id="panes"><div class="pane" id="pane-clip"></div><div class="pane" id="pane-trans"></div><div class="pane" id="pane-movie"></div></div>
 </div>
 <div id="home">
-  <div id="homenav"><span class="inl">Clipper</span><button class="lnk" id="edit-btn">Edit</button><button class="lnk" id="help-btn">Help</button></div>
+  <div id="homenav"><span class="inl">Clipper</span><button class="lnk" id="help-btn">Help</button></div>
   <div id="home-body"></div>
 </div>
 <div class="mbg" id="exportbg"><div class="modal" id="exportmodal"></div></div>
@@ -2306,7 +2306,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v3.4 · Oct 11 10:27';
+const VERSION = 'v3.5 · Oct 11 10:43';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -2319,9 +2319,10 @@ const FONTS = [['sf', 'System', '-apple-system, BlinkMacSystemFont, "Helvetica N
   ['chalk', 'Chalkduster', 'Chalkduster, fantasy', 400], ['mono', 'SF Mono', 'ui-monospace, Menlo, monospace', 700],
   ['newyork', 'New York', 'ui-serif, "New York", Georgia, serif', 700], ['avenir', 'Avenir', '"Avenir Next", Avenir, "Helvetica Neue", sans-serif', 600],
   ['baskerville', 'Baskerville', 'Baskerville, "Baskerville Old Face", Georgia, serif', 600], ['gillsans', 'Gill Sans', '"Gill Sans", "Gill Sans MT", Calibri, sans-serif', 600],
-  ['typewriter', 'Typewriter', '"American Typewriter", "Courier New", monospace', 600]];
+  ['typewriter', 'Typewriter', '"American Typewriter", "Courier New", monospace', 600],
+  ['pro', 'Professional', '"Avenir Next", Avenir, "Helvetica Neue", sans-serif', 600], ['italic', 'Italic', 'Baskerville, "Baskerville Old Face", Georgia, serif', 600, 'italic'], ['fun', 'Fun', '"Marker Felt", "Chalkboard SE", "Comic Sans MS", cursive', 400]];
 // the ten the design shows (older ids above stay so existing movies still render the same)
-const DESIGN_FONTS = ['sf', 'newyork', 'sfround', 'avenir', 'futura', 'didot', 'baskerville', 'gillsans', 'typewriter', 'script'];
+const DESIGN_FONTS = ['pro', 'italic', 'fun'];
 const fontOf = (id) => FONTS.find(f => f[0] === id) || FONTS[0];
 const SIZES = { s: 0.040, m: 0.056, l: 0.078, xl: 0.11 };
 function wrapText(ctx, text, maxW) {
@@ -2333,7 +2334,7 @@ function wrapText(ctx, text, maxW) {
   }
   return lines.length ? lines : [''];
 }
-function setFont(ctx, id, px) { const f = fontOf(id); ctx.font = `${f[3]} ${px}px ${f[2]}`; }
+function setFont(ctx, id, px) { const f = fontOf(id); ctx.font = `${f[4] || 'normal'} ${f[3]} ${px}px ${f[2]}`; }
 // draws a text spec onto ctx (W×H frame). Same geometry as the Mac PNGs. `boxes`
 // (optional) collects the drawn box so the preview can hit-test taps on captions.
 function drawText(ctx, W, H, spec, alpha, boxes) {
@@ -2422,11 +2423,11 @@ const PHOTO_MAX = 120, PHOTO_DEFAULT = 4, PHOTO_EDGE = 2048;
 const newCaption = (o) => Object.assign({ uid: uid(), text: '', sub: '', pos: 'bottom', size: 'm', font: 'sf', style: 'clean', color: '#ffffff', start: 0, end: 3 }, o || {});
 const newClip = (fileId, o) => Object.assign({ uid: uid(), fileId, in: null, out: null, speed: 1, mute: false, volume: 1, fadeIn: 0, fadeOut: 0, text: '' }, o || {});
 function defaultProj() {
-  return { v: 4, id: uid(), created: Date.now(), name: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' movie', clips: [], captions: [],
-    title: { on: false, text: '', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'sf' },
-    end: { on: false, text: 'The End', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'sf' },
-    transition: 'none', tdur: 0.5, fadeIn: 0, fadeOut: 0.5, music: null,
-    textLook: { style: 'clean', size: 'm', font: 'sf', color: '#ffffff' },
+  return { v: 5, v5: true, id: uid(), created: Date.now(), name: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' movie', clips: [], captions: [],
+    title: { on: false, text: '', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'pro' },
+    end: { on: false, text: 'The End', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'pro' },
+    transition: 'fade', tdur: 0.3, fadeIn: 0, fadeOut: 0, music: null,
+    textLook: { style: 'clean', size: 'm', font: 'pro', color: '#ffffff' },
     out: { res: '1080p', aspect: 'source', fit: 'blur', fps: 30, quality: 'good' } };
 }
 const S = { proj: defaultProj(), files: {}, sel: null, T: 0, playing: false, segs: [], total: 0, undo: [], redo: [], tab: 'clip', musicFile: null, view: 'home', zoom: 1, textBoxes: [], projects: [], exports: [], touched: false };
@@ -2471,14 +2472,17 @@ const missingClips = () => S.proj.clips.filter(c => { const f = fileOf(c); retur
 // Older projects are simplified on open: per-clip texts / movie-time captions become the clip's text, and the
 // clip-level extras that no longer have controls (speed, volume, mute, fades, photo motion) go back to normal.
 function migrateCaptions() {
-  const p = S.proj; if (!p.textLook) p.textLook = { style: 'clean', size: 'm', font: 'sf', color: '#ffffff' };
-  if (p.v >= 4 && !(p.captions || []).length && !p.clips.some(c => c.texts)) return; computeSegs();
+  const p = S.proj;
+  if (!p.textLook) p.textLook = { style: 'clean', size: 'm', font: 'pro', color: '#ffffff' };
+  if (p.v >= 4 && !(p.captions || []).length && !p.clips.some(c => c.texts)) { p.v = 5; return; } computeSegs();
   const first = (p.captions || [])[0] || p.clips.map(c => (c.texts || [])[0]).find(Boolean); if (first) Object.assign(p.textLook, { style: first.style || 'clean', size: first.size || 'm', font: first.font || 'sf', color: first.color || '#ffffff' });
   for (const c of p.clips) { if (!c.text && c.texts && c.texts.length) c.text = c.texts.map(t => t.text).filter(Boolean).join(' '); delete c.texts; }
   for (const cap of p.captions || []) { const sg = S.segs.find(x => x.kind === 'clip' && cap.start >= x.start - 0.05 && cap.start < x.start + x.dur) || S.segs.find(x => x.kind === 'clip'); if (sg && !sg.clip.text) sg.clip.text = [cap.text, cap.sub].filter(Boolean).join(' '); }
   for (const c of p.clips) { c.speed = 1; c.mute = false; c.volume = 1; c.fadeIn = 0; c.fadeOut = 0; c.kb = 'in'; }
-  p.captions = []; p.v = 4;
+  p.captions = []; p.v = 5;
 }
+// v3.5: three fonts only and no movie fades — older movies are brought in line once
+function migrateV5() { const p = S.proj; if (p.v5) return; for (const o of [p.textLook, p.title, p.end]) if (o && !DESIGN_FONTS.includes(o.font)) o.font = 'pro'; p.fadeIn = 0; p.fadeOut = 0; p.v5 = true; }
 // the clip texts live at T, with their fade alpha (a text shows from its clip's cut to the next cut)
 function captionsAt(T) {
   const out = []; const L = S.proj.textLook || {};
@@ -2862,7 +2866,7 @@ function overlayState(T) {
   const out = { layers: [], missing: null, texts: captionsAt(T), dark: 0, motion: false };
   const { cur, nxt, a } = liveSegs(T); if (!cur) return out;
   const tr = S.proj.transition;
-  const darkOf = (seg) => { const lt = T - seg.start; let d = 0; if (seg.kind === 'card') { const f = Math.min(0.6, seg.dur / 3); if (lt < f) d = 1 - lt / f; if (lt > seg.dur - f) d = Math.max(d, (lt - (seg.dur - f)) / f); return (seg.ov || seg.ovOut) ? 0 : d; } const c = seg.clip; let fi = +c.fadeIn || 0, fo = +c.fadeOut || 0; if (tr === 'black') { fi = Math.max(fi, (+S.proj.tdur || 0.5) / 2); fo = Math.max(fo, (+S.proj.tdur || 0.5) / 2); } if (fi > 0 && lt < fi) d = 1 - lt / fi; if (fo > 0 && lt > seg.dur - fo) d = Math.max(d, (lt - (seg.dur - fo)) / fo); return d; };
+  const darkOf = (seg) => { const lt = T - seg.start; let d = 0; const c = seg.kind === 'clip' ? seg.clip : {}; let fi = +c.fadeIn || 0, fo = +c.fadeOut || 0; if (tr === 'black') { fi = Math.max(fi, (+S.proj.tdur || 0.5) / 2); fo = Math.max(fo, (+S.proj.tdur || 0.5) / 2); } if (fi > 0 && lt < fi) d = 1 - lt / fi; if (fo > 0 && lt > seg.dur - fo) d = Math.max(d, (lt - (seg.dur - fo)) / fo); return d; };
   const layer = (seg, alpha) => { if (!seg) return; const f = seg.kind === 'clip' ? fileOf(seg.clip) : null; if (seg.kind === 'card') out.layers.push({ card: seg.card, alpha }); else if (f && f.missing) out.missing = f; else if (seg.photo) { out.layers.push({ photo: f, prog: clamp((T - seg.start) / seg.dur, 0, 1), kb: seg.clip.kb, alpha }); out.motion = true; } };
   const aIn = tr === 'black' ? (a >= 0.5 ? 1 : 0) : a;
   layer(cur, nxt && a > 0 ? 1 - aIn : 1); if (nxt && a > 0) layer(nxt, aIn);
@@ -3164,19 +3168,17 @@ function renderMoviePane() {
     return [lrow(h('span', { style: 'flex:0 0 74px;color:var(--muted)' }, 'Text'), tx), lrow(h('span', { style: 'flex:0 0 74px;color:var(--muted)' }, 'Subtitle'), sb)];
   };
   const cardLook = (card) => h('div', null,
-    h('div', { class: 'glab', style: 'margin-top:12px' }, 'Font & look', h('span', null, fontOf(card.font || 'sf')[1])),
-    tiles(5, DESIGN_FONTS.map(id => { const f = fontOf(id); return [id, h('span', { class: 'aa', style: `font-family:${f[2]};font-weight:${f[3]}` }, 'Aa'), f[1]]; }), card.font || 'sf', v => { card.font = v; saveLocal(); overlayKey = null; drawOverlay(S.T); renderMoviePane(); }),
+    h('div', { class: 'glab', style: 'margin-top:12px' }, 'Font & look', h('span', null, fontOf(card.font || 'pro')[1])),
+    tiles(3, DESIGN_FONTS.map(id => { const f = fontOf(id); return [id, h('span', { class: 'aa', style: `font-family:${f[2]};font-weight:${f[3]};font-style:${f[4] || 'normal'}` }, 'Aa'), f[1]]; }), card.font || 'sf', v => { card.font = v; saveLocal(); overlayKey = null; drawOverlay(S.T); renderMoviePane(); }),
     h('div', { style: 'height:8px' }),
     segc([['#0b0f19|#ffffff', 'Dark'], ['#ffffff|#1b2330', 'Light'], ['#1e3a8a|#ffffff', 'Blue'], ['#7c2d12|#ffe4c4', 'Warm']], card.bg + '|' + card.color, v => { const [bg, col] = v.split('|'); card.bg = bg; card.color = col; saveLocal(); overlayKey = null; drawOverlay(S.T); renderMoviePane(); }),
     h('div', { class: 'glab', style: 'margin-top:12px' }, 'Show for', h('span', null, `${+card.dur || 3} seconds`)),
     segc([[2, '2 s'], [3, '3 s'], [4, '4 s'], [6, '6 s']], +card.dur || 3, v => { snapshot(); card.dur = v; commit(); }));
   const cardToggle = (card, isTitle) => toggle(card.on, v => { snapshot(); card.on = v; if (v && !card.text && isTitle) card.text = p.name; commit(); if (v) player.seek(isTitle ? Math.min(0.7, (+card.dur || 3) / 2) : Math.max(0, S.total - (+card.dur || 3) + 0.7)); });
   pane.appendChild(grp('Opening', null, list(lrow('Title card', cardToggle(p.title, true)), ...(p.title.on ? cardFields(p.title, true) : [])), p.title.on ? cardLook(p.title) : null));
-  pane.appendChild(grp('Ending', null, list(lrow('End card', cardToggle(p.end, false)), ...(p.end.on ? cardFields(p.end, false) : [])), p.end.on ? cardLook(p.end) : null,
-    h('div', { style: 'height:12px' }),
-    list(lrow('Fade in from black', toggle(+p.fadeIn > 0, v => { snapshot(); p.fadeIn = v ? 1 : 0; commit(); })), lrow('Fade out to black', toggle(+p.fadeOut > 0, v => { snapshot(); p.fadeOut = v ? 1 : 0; commit(); })))));
+  pane.appendChild(grp('Ending', null, list(lrow('End card', cardToggle(p.end, false)), ...(p.end.on ? cardFields(p.end, false) : [])), p.end.on ? cardLook(p.end) : null));
   // the look of every clip's text, set once for the movie
-  const L = p.textLook || (p.textLook = { style: 'clean', size: 'm', font: 'sf', color: '#ffffff' });
+  const L = p.textLook || (p.textLook = { style: 'clean', size: 'm', font: 'pro', color: '#ffffff' });
   const setL = (k) => (v) => { snapshot(); L[k] = v; saveLocal(); overlayKey = null; drawOverlay(S.T); renderMoviePane(); };
   const presets = ['#ffffff', '#ffd60a', '#1d1d1f']; const isPreset = presets.includes(String(L.color || '').toLowerCase());
   const custom = h('input', { type: 'color', onchange: (e) => setL('color')(e.target.value) }); custom.value = /^#[0-9a-f]{6}$/i.test(L.color || '') ? L.color : '#ffffff';
@@ -3185,7 +3187,7 @@ function renderMoviePane() {
     h('div', { style: 'height:10px' }),
     segc([['s', 'Small', { style: 'font-size:12px' }], ['m', 'Medium', { style: 'font-size:14px' }], ['l', 'Large', { style: 'font-size:16px' }], ['xl', 'Huge', { style: 'font-size:19px' }]], L.size, setL('size')),
     h('div', { class: 'glab', style: 'margin-top:12px' }, 'Font', h('span', null, fontOf(L.font)[1])),
-    tiles(5, DESIGN_FONTS.map(id => { const f = fontOf(id); return [id, h('span', { class: 'aa', style: `font-family:${f[2]};font-weight:${f[3]}` }, 'Aa'), f[1]]; }), L.font, setL('font')),
+    tiles(3, DESIGN_FONTS.map(id => { const f = fontOf(id); return [id, h('span', { class: 'aa', style: `font-family:${f[2]};font-weight:${f[3]};font-style:${f[4] || 'normal'}` }, 'Aa'), f[1]]; }), L.font, setL('font')),
     h('div', { class: 'glab', style: 'margin-top:12px' }, 'Color'),
     h('div', { class: 'sw' }, ...presets.map(c => h('button', { class: 'swc' + (String(L.color || '').toLowerCase() === c ? ' on' : ''), style: `background:${c}`, 'aria-label': c, onclick: () => setL('color')(c) })), h('span', { class: 'swc cust' + (isPreset ? '' : ' on') }, custom), h('span', { class: 'swl' }, 'Custom…')),
     h('div', { class: 'note' }, 'Each clip’s text is typed in the Clip tab and shows at the bottom while that clip plays.')));
@@ -3207,7 +3209,7 @@ function renderMoviePane() {
     mg.appendChild(list(lrow(h('span', { style: 'flex:0 0 auto' }, 'Volume'), r, v), lrow(h('span', { style: 'flex:0 0 auto' }, 'Start song at'), orr, ov)));
     mg.appendChild(h('div', { class: 'note' }, 'The song starts at that point when the movie starts, repeats if the movie is longer, and fades out at the end. You hear it in the preview too.'));
   }
-  pane.appendChild(mg);
+  pane.insertBefore(mg, pane.children[1]);   // music first, right under Saved work
   pane.appendChild(grp('About', null, list(h('div', { class: 'lrow tap', onclick: () => openHelp() }, h('span', { class: 'k' }, 'How Clipper works'), ic('chev')), h('div', { class: 'lrow tap', onclick: () => checkForUpdate(false, true) }, h('span', { class: 'k' }, 'Check for update'), ic('chev')))));
   pane.appendChild(h('div', { class: 'ver' }, `Clipper ${VERSION}`));
   pane.appendChild(h('div', { class: 'ver', style: 'margin-top:4px;font-size:12px' }, [SUPPORT.webcodecs ? 'video engine ready' : 'no WebCodecs — update iOS', SUPPORT.audioenc ? 'sound export ready' : 'sound export unavailable on this iOS', SUPPORT.opfs ? 'exports kept on this phone' : 'exports kept until you leave'].join(' · ')));
@@ -3220,56 +3222,41 @@ async function loadLists() {
   try { S.exports = (await DB.all('exports')).sort((a, b) => (b.date || 0) - (a.date || 0)); } catch { S.exports = []; }
   if (S.memExports) S.exports = S.memExports.filter(x => !S.exports.find(y => y.id === x.id)).concat(S.exports);
 }
-function showHome() { player.pause(); S.view = 'home'; S.homeEdit = false; $('home').classList.add('on'); $('home').classList.remove('editing'); $('edit-btn').textContent = 'Edit'; document.body.classList.add('home'); clearTimeout(saveT); persistProject().finally(() => loadLists().then(renderHome)); renderHome(); }
-function showEditor() { S.view = 'editor'; $('home').classList.remove('on'); document.body.classList.remove('home'); $('name').textContent = S.proj.name; migrateCaptions(); setTab('clip'); commit(); renderInspector(); }
+function showHome() { player.pause(); S.view = 'home'; $('home').classList.add('on'); document.body.classList.add('home'); clearTimeout(saveT); persistProject().finally(() => loadLists().then(renderHome)); renderHome(); }
+function showEditor() { S.view = 'editor'; $('home').classList.remove('on'); document.body.classList.remove('home'); $('name').textContent = S.proj.name; migrateCaptions(); migrateV5(); setTab('clip'); commit(); renderInspector(); }
 function thumbEl(src, cls, style) { const el = h('div', { class: cls || 'th', style: style || '' }); if (src) el.style.backgroundImage = `url(${src})`; return el; }
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const dayStr = (ms) => { const d = new Date(ms), now = new Date(); const day = 864e5; const a = new Date(d.getFullYear(), d.getMonth(), d.getDate()), b = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const k = Math.round((b - a) / day); return k === 0 ? 'Today' : k === 1 ? 'Yesterday' : dateStr(ms); };
-// swipe a row left to reveal Delete (tap elsewhere on the row to close it again)
-function swipeRow(row, mv, onOpen) {
-  let st = null, open = false;
-  const set = (x, anim) => { mv.style.transition = anim ? '' : 'none'; mv.style.transform = x ? `translateX(${x}px)` : ''; };
-  mv.addEventListener('pointerdown', (e) => { if (S.homeEdit) return; st = { x: e.clientX, y: e.clientY, sw: false, base: open ? -96 : 0 }; });
-  mv.addEventListener('pointermove', (e) => { if (!st) return; const dx = e.clientX - st.x, dy = e.clientY - st.y; if (!st.sw) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.3) { st.sw = true; try { mv.setPointerCapture(e.pointerId); } catch {} } else if (Math.abs(dy) > 10) { st = null; return; } } if (st.sw) set(clamp(st.base + dx, -110, 0)); });
-  const end = (e) => { if (!st) return; const was = st; st = null; if (!was.sw) return; const x = was.base + (e.clientX - was.x); open = x < -48; set(open ? -96 : 0, true); row._swiped = Date.now(); };
-  mv.addEventListener('pointerup', end); mv.addEventListener('pointercancel', () => { st = null; set(open ? -96 : 0, true); });
-  mv.addEventListener('click', (e) => { if (row._swiped && Date.now() - row._swiped < 400) return; if (open) { open = false; set(0, true); return; } onOpen(e); });
-}
 function renderHome() {
   const box = $('home-body'); box.innerHTML = '';
   box.appendChild(h('div', { class: 'lt' }, 'Clipper', h('small', { id: 'hver', title: VERSION }, VERSION.split(' · ')[0])));
   box.appendChild(h('button', { class: 'hero', onclick: newMovie }, h('b', null, 'New movie'), h('span', null, 'Choose clips and photos from your library'), h('i', { html: IC.plusBig })));
-  if (S.projects.length) {
-    const mb = S.projects.reduce((a, p) => a + (p.bytes || 0), 0) / 1e6;
-    box.appendChild(h('div', { class: 'hsec' }, h('b', null, 'Saved work'), h('span', null, `${plural(S.projects.length, 'movie')} · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`)));
+  // one row per movie: the saved work (editable) and its latest export; old exports without a movie stay listed as video only
+  const rows = S.projects.map(p => ({ p, ex: S.exports.find(e => e.pid === p.id) || null, t: p.updated || 0 }));
+  for (const ex of S.exports) if (!ex.pid || !S.projects.find(p => p.id === ex.pid)) rows.push({ p: null, ex, t: ex.date || 0 });
+  rows.sort((a, b) => b.t - a.t);
+  if (rows.length) {
+    const mb = (S.projects.reduce((a, p) => a + (p.bytes || 0), 0) + S.exports.reduce((a, e) => a + (e.size || 0), 0)) / 1e6;
+    box.appendChild(h('div', { class: 'hsec' }, h('b', null, 'Your movies'), h('span', null, `${plural(rows.length, 'movie')} · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`)));
     const lst = h('div', { class: 'hlist' });
-    for (const p of S.projects) {
-      const del = h('button', { class: 'del', onclick: (e) => { e.stopPropagation(); deleteProject(p); } }, 'Delete');
-      const mv = h('div', { class: 'mv' }, h('button', { class: 'edx', title: 'Delete', html: '<svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6h8" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>', onclick: (e) => { e.stopPropagation(); deleteProject(p); } }), thumbEl(p.thumb), h('div', { class: 'ct' }, h('div', { class: 't' }, p.name || 'movie'), h('div', { class: 'm' }, `${dayStr(p.updated)} · ${plural(p.clips || 0, 'clip')} · ${fmtL(p.dur)} · ${Math.max(1, Math.round((p.bytes || 0) / 1e6))} MB`)), ic('chev'));
-      const row = h('div', { class: 'mrow' }, del, mv);
-      swipeRow(row, mv, () => { if (!S.homeEdit) openProject(p.id); });
-      lst.appendChild(row);
+    for (const { p, ex } of rows) {
+      const name = p ? (p.name || 'movie') : ex.fname.replace(/\.mp4$/i, '');
+      const bits = p ? [plural(p.clips || 0, 'clip'), fmtL(p.dur)] : [fmtL(ex.dur), 'video only'];
+      const dd = ex ? dayStr(ex.date) : ''; bits.push(ex ? `exported ${/^(Today|Yesterday)$/.test(dd) ? dd.toLowerCase() : dd}` : 'not exported yet');
+      const top = h('div', { class: 'top', style: p ? 'cursor:pointer' : '', onclick: p ? () => openProject(p.id) : null }, thumbEl((ex && ex.thumb) || (p && p.thumb), 'th', 'width:64px;height:64px;border-radius:10px'), h('div', { class: 'ct' }, h('div', { class: 't' }, name), h('div', { class: 'm' }, bits.join(' · '))), p ? ic('chev') : null);
+      const acts = h('div', { class: 'acts' });
+      if (ex) { const save = h('button', { class: 'bbtn tint' + (ex.saved ? ' done' : ''), onclick: (e) => saveExport(ex, e.currentTarget) }, ex.saved ? 'Saved to Photos' : 'Save to Photos'); if (ex.saved) save.disabled = true; acts.appendChild(save); }
+      else acts.appendChild(h('button', { class: 'bbtn tint', onclick: () => openProject(p.id) }, 'Open to edit'));
+      acts.appendChild(h('button', { class: 'bbtn quiet red', onclick: () => p ? deleteProject(p) : deleteExport(ex) }, 'Delete'));
+      lst.appendChild(h('div', { class: 'xrow' }, top, acts));
     }
     box.appendChild(lst);
-  }
-  if (S.exports.length) {
-    const mb = S.exports.reduce((a, x) => a + (x.size || 0), 0) / 1e6;
-    box.appendChild(h('div', { class: 'hsec' }, h('b', null, 'Exports'), h('span', null, `${plural(S.exports.length, 'movie')} · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`)));
-    const lst = h('div', { class: 'hlist' });
-    for (const ex of S.exports) {
-      const r = (ex.W && ex.H) ? ex.W / ex.H : 16 / 9; const tw = r >= 1 ? Math.min(84, Math.round(47 * r)) : Math.max(27, Math.round(47 * r));
-      const res = Math.min(ex.W || 1920, ex.H || 1080) >= 1000 ? '1080p' : '720p';
-      const save = h('button', { class: 'bbtn tint' + (ex.saved ? ' done' : ''), onclick: (e) => saveExport(ex, e.currentTarget) }, ex.saved ? 'Saved to Photos' : 'Save to Photos'); if (ex.saved) save.disabled = true;
-      lst.appendChild(h('div', { class: 'xrow' }, h('div', { class: 'top' }, thumbEl(ex.thumb, 'th', `width:${tw}px`), h('div', { class: 'ct' }, h('div', { class: 't' }, ex.fname.replace(/\.mp4$/i, '')), h('div', { class: 'm' }, `${dayStr(ex.date)} · ${fmtL(ex.dur)} · ${res} · ${(ex.size / 1e6).toFixed(ex.size < 1e7 ? 1 : 0)} MB`))),
-        h('div', { class: 'acts' }, save, h('button', { class: 'bbtn quiet red', onclick: () => deleteExport(ex) }, 'Delete'))));
-    }
-    box.appendChild(lst);
-  }
-  box.appendChild(h('div', { class: 'hfoot' }, 'A movie is kept only if you tap “Save to finish later”; then Clipper keeps a copy of its clips on this phone so it reopens ready to edit. Finished movies stay under Exports until you delete them. Deleting frees the space; your originals always stay in Photos. Nothing is uploaded.'));
+  } else box.appendChild(h('div', { class: 'hnote' }, 'Movies you save or export show up here.'));
+  box.appendChild(h('div', { class: 'hfoot' }, 'A movie is kept when you save it to finish later or export it: Clipper keeps a copy of its clips on this phone so you can reopen it, change it and export again (the new video replaces the old one). Delete frees the space; your originals always stay in Photos. Nothing is uploaded.'));
   box.appendChild(h('div', { class: 'hlist', style: 'margin-top:18px' }, h('div', { class: 'lrow tap', onclick: () => openHelp() }, h('span', { class: 'k' }, 'How Clipper works'), ic('chev'))));
 }
 $('home-body').addEventListener('scroll', () => $('home').classList.toggle('scrolled', $('home-body').scrollTop > 36), { passive: true });
-$('edit-btn').onclick = () => { S.homeEdit = !S.homeEdit; $('home').classList.toggle('editing', S.homeEdit); $('edit-btn').textContent = S.homeEdit ? 'Done' : 'Edit'; };
+
 function resetEditorState() { S.sel = null; overlayKey = null; S.T = 0; S.undo.length = 0; S.redo.length = 0; S.zoom = 1; S.musicFile = null; S.musicBuf = null; S.touched = false; try { const au = $('music'); au.pause(); au.removeAttribute('src'); delete au.dataset.name; } catch {} for (const v of player.vids) { v.pause(); v.removeAttribute('src'); delete v.dataset.src; v.classList.remove('on'); } }
 function newMovie() { resetEditorState(); S.files = {}; S.proj = defaultProj(); const base = S.proj.name; let k = 2; const taken = new Set((S.projects || []).map(p => p.name)); while (taken.has(S.proj.name)) S.proj.name = `${base} ${k++}`; showEditor(); }
 async function openProject(id) {
@@ -3288,10 +3275,12 @@ async function openProject(id) {
   status(''); commit(); thumbsFor(Object.keys(S.files));
 }
 async function deleteProject(p) {
-  let ok = true; try { ok = confirm(`Delete “${p.name}”? Its saved copy is removed from this phone. Your originals stay in Photos.`); } catch {}
+  let ok = true; try { ok = confirm(`Delete “${p.name}”? Its saved clips and exported video are removed from this phone. Your originals stay in Photos.`); } catch {}
   if (!ok) return;
   try { await DB.del('projects', p.id); } catch {}
   for (const name of await KEEP.names()) if (name.startsWith(`clip_${p.id}_`) || name === KEEP.music(p.id)) await DiskSink.remove(name);
+  for (const ex of S.exports.filter(e => e.pid === p.id)) { try { await DB.del('exports', ex.id); } catch {} if (ex.opfs) await DiskSink.remove(ex.opfs); }
+  S.exports = S.exports.filter(e => e.pid !== p.id);
   S.projects = S.projects.filter(x => x.id !== p.id); renderHome(); say(`Deleted “${p.name}”`, 3000);
 }
 // re-pick: the Photos picker opens; picked files are matched to the movie's clips by name + size (+ date)
@@ -3365,7 +3354,8 @@ async function deleteExport(ex) {
   S.exports = S.exports.filter(x => x.id !== ex.id); if (S.memExports) S.memExports = S.memExports.filter(x => x.id !== ex.id); renderHome(); say('Export deleted');
 }
 async function rememberExport(ex) {
-  const rec = { id: ex.id, fname: ex.fname, size: ex.size, date: ex.date, dur: ex.dur, W: ex.W, H: ex.H, thumb: ex.thumb, opfs: ex.opfs || null };
+  const rec = { id: ex.id, pid: ex.pid || null, fname: ex.fname, size: ex.size, date: ex.date, dur: ex.dur, W: ex.W, H: ex.H, thumb: ex.thumb, opfs: ex.opfs || null };
+  if (rec.pid) { let olds = []; try { olds = (await DB.all('exports')).filter(e => e.pid === rec.pid && e.id !== rec.id); } catch {} for (const o of olds) { try { await DB.del('exports', o.id); } catch {} if (o.opfs) await DiskSink.remove(o.opfs); } if (S.memExports) S.memExports = S.memExports.filter(e => e.pid !== rec.pid); }
   if (rec.opfs) { try { await DB.put('exports', rec); return; } catch (e) { DBG.dbErr = String(e && e.message || e); } }
   (S.memExports = S.memExports || []).unshift(Object.assign(rec, { _file: ex._file }));
 }
@@ -3725,8 +3715,7 @@ function overlayStateFor(T, cur, nxt) {
   const out = { texts: captionsAt(T), dark: 0 };
   const darkOf = (seg) => {
     if (!seg) return 0; const lt = T - seg.start;
-    if (seg.kind !== 'clip') { const f = Math.min(0.6, seg.dur / 3); let d = 0; if (lt < f) d = 1 - lt / f; if (lt > seg.dur - f) d = Math.max(d, (lt - (seg.dur - f)) / f); return (seg.ov || (nxt && nxt.ov)) ? 0 : d; }
-    const c = seg.clip; let fi = +c.fadeIn || 0, fo = +c.fadeOut || 0;
+    const c = seg.kind === 'clip' ? seg.clip : {}; let fi = +c.fadeIn || 0, fo = +c.fadeOut || 0;
     if (S.proj.transition === 'black') { fi = Math.max(fi, (+S.proj.tdur || 0.5) / 2); fo = Math.max(fo, (+S.proj.tdur || 0.5) / 2); }
     let d = 0; if (fi > 0 && lt < fi) d = 1 - lt / fi; if (fo > 0 && lt > seg.dur - fo) d = Math.max(d, (lt - (seg.dur - fo)) / fo); return d;
   };
@@ -3861,7 +3850,7 @@ function renderExport(stage, data) {
     body.appendChild(h('div', { class: 'mfoot' },
       h('button', { class: 'bbtn', style: 'min-height:56px', onclick: async (ev) => { await saveExport(ex, ev.currentTarget); } }, 'Save to Photos'),
       h('div', { style: 'height:10px' }), h('button', { class: 'bbtn quiet', style: 'min-height:52px', onclick: closeExport }, 'Done'),
-      h('div', { class: 'mnote' }, sound + ' A copy stays in Exports until you delete it.'),
+      h('div', { class: 'mnote' }, sound + ' It’s on the home screen under Your movies; export again any time and the new video replaces this one.'),
       p.music && DBG.musicErr ? h('div', { class: 'err' }, 'The movie was made without music: ' + DBG.musicErr) : null,
       h('div', { style: 'text-align:center' }, h('button', { class: 'lnk', style: 'font-size:13px;min-height:36px', onclick: async (ev) => { try { await navigator.clipboard.writeText(data.report); say('Report copied — paste it to Claude'); } catch { ev.currentTarget.replaceWith(h('div', { class: 'err', style: 'background:var(--sheet);color:var(--ink)' }, data.report)); } } }, 'Copy report'))));
   }
@@ -3892,8 +3881,9 @@ async function runExport() {
     const snd = !SUPPORT.audioenc ? 'none (this iOS cannot encode sound in the browser)' : `clips ${DBG.aData || DBG.aFallback ? 'ok' : '— (no clip sound decoded)'} · music ${S.proj.music ? (DBG.music ? 'ok ' + S.proj.music.mode : 'failed ' + (DBG.musicErr || 'not loaded — choose the track again')) : 'none'} · written ${DBG.aChunks || 0} sound chunks${DBG.aMuxErr ? ' · writer error: ' + DBG.aMuxErr : ''}${DBG.aEncErr ? ' · encoder error: ' + DBG.aEncErr : ''}`;
     const report = `Clipper ${VERSION}\n${navigator.userAgent}\nsupport ${JSON.stringify(SUPPORT)}\nsound: ${snd}\nmade in ${Math.round((Date.now() - t0) / 1000)} s\n${JSON.stringify(DBG)}`;
     const fname = (S.proj.name || 'movie').replace(/[^\w\- ]+/g, '_') + '.mp4';
-    const ex = { id: res.id, fname, size: blob.size, date: Date.now(), dur: total, W: W0, H: H0, thumb: res.thumb, opfs: res.opfs, _file: new File([blob], fname, { type: 'video/mp4' }) };
+    const ex = { id: res.id, pid: S.proj.id, fname, size: blob.size, date: Date.now(), dur: total, W: W0, H: H0, thumb: res.thumb, opfs: res.opfs, _file: new File([blob], fname, { type: 'video/mp4' }) };
     S.lastExport = ex; await rememberExport(ex);
+    if (!S.proj.kept) { S.proj.kept = true; updateTC(); renderMoviePane(); try { await DB.put('projects', projectRecord()); } catch {} syncKept(); }   // exporting keeps the work, so it can be changed and exported again
     exporting = false; renderExport('done', { ex, report });
   } catch (e) {
     console.error(e); exporting = false;
