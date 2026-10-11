@@ -320,7 +320,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Movies</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v3.2</span>
+  <span id="ver" title="version · build time">v3.3</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -2304,7 +2304,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v3.2 · Oct 11 10:08';
+const VERSION = 'v3.3 · Oct 11 10:18';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -2568,23 +2568,55 @@ async function photoThumbs(f) {
   const cw = 120, ch = Math.max(8, Math.round(cw * f.h / f.w)); const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
   cv.getContext('2d').drawImage(f.bitmap, 0, 0, cw, ch); const u = cv.toDataURL('image/jpeg', 0.6); f.thumbs = [u]; f.strip = u;
 }
+// timeline pictures for a video. First choice: decode keyframes straight from the file with the same decoder
+// the export uses (a hidden <video> on iPhone often has no picture yet for the first seeks → black tiles).
 async function makeThumbs(f, n) {
-  n = n || 6;
-  const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = f.url;
-  await new Promise(r => { v.onloadeddata = r; v.onloadedmetadata = r; v.onerror = r; setTimeout(r, 2500); try { v.load(); } catch {} });
-  const cw = 120, ch = Math.round(cw * f.h / f.w) || 68; const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const ctx = cv.getContext('2d');
-  const out = [];
-  for (let i = 0; i < n; i++) {
-    const t = Math.min(f.dur - 0.05, (i + 0.5) * f.dur / n);
-    await new Promise(r => { v.onseeked = r; try { v.currentTime = Math.max(0, t); } catch { r(); } setTimeout(r, 1200); });
-    try { if (v.readyState >= 2) { ctx.drawImage(v, 0, 0, cw, ch); out.push(cv.toDataURL('image/jpeg', 0.6)); } } catch { }
-  }
-  f.thumbs = out; v.removeAttribute('src'); try { v.load(); } catch {}
-  if (!out.length) return;
+  n = n || 6; const cw = 120, ch = Math.round(cw * f.h / f.w) || 68;
+  let out = null;
+  if (SUPPORT.webcodecs && typeof MP4Box !== 'undefined' && f.file) { try { out = await decoderThumbs(f, n, cw, ch); } catch (e) { DBG.thumbErr = String(e && e.message || e); out = null; } }
+  if (!out || !out.length) out = await videoThumbs(f, n, cw, ch);
+  f.thumbs = out; if (!out.length) return;
   // one strip image for the timeline background
   const strip = document.createElement('canvas'); strip.width = cw * out.length; strip.height = ch; const sc = strip.getContext('2d');
   await Promise.all(out.map((u, i) => new Promise(r => { const im = new Image(); im.onload = () => { sc.drawImage(im, i * cw, 0); r(); }; im.onerror = r; im.src = u; })));
   f.strip = strip.toDataURL('image/jpeg', 0.7); f.stripAR = strip.width / strip.height;
+}
+async function decoderThumbs(f, n, cw, ch) {
+  const mp4 = MP4Box.createFile(); let info = null, perr = null; mp4.onReady = (i) => { info = i; }; mp4.onError = (e) => { perr = e; };
+  let pos = 0; while (!info && !perr && pos < f.file.size) { const end = Math.min(f.file.size, pos + CHUNK); const buf = await f.file.slice(pos, end).arrayBuffer(); buf.fileStart = pos; const next = mp4.appendBuffer(buf); pos = (typeof next === 'number' && next > pos) ? next : end; }
+  if (!info) throw new Error('no movie header');
+  const v = info.videoTracks[0]; if (!v) throw new Error('no video track'); const trak = mp4.getTrackById(v.id); const samples = (trak && trak.samples) || [];
+  const keys = samples.filter(x => x.is_sync); if (!keys.length) throw new Error('no keyframes');
+  const cfg = { codec: v.codec, codedWidth: v.video.width, codedHeight: v.video.height, description: boxDescription(mp4, v.id) };
+  const frames = []; let derr = null;
+  const dec = new VideoDecoder({ output: (fr) => frames.push(fr), error: (e) => { derr = e; } }); dec.configure(cfg);
+  const picks = []; for (let i = 0; i < n; i++) { const t = (i + 0.5) * f.dur / n; let best = keys[0]; for (const k of keys) { if (k.cts / k.timescale <= t + 0.01) best = k; else break; } picks.push(best); }
+  for (const k of picks) { const data = new Uint8Array(await f.file.slice(k.offset, k.offset + k.size).arrayBuffer()); dec.decode(new EncodedVideoChunk({ type: 'key', timestamp: Math.round(k.cts / k.timescale * 1e6), data })); }
+  await dec.flush(); try { dec.close(); } catch {}
+  if (derr) { for (const fr of frames) fr.close(); throw derr; }
+  const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const ctx = cv.getContext('2d'); const rot = matrixRotation(v); const out = [];
+  for (const fr of frames) { try { drawFit(ctx, cw, ch, fr, rot, 'fit', {}); out.push(cv.toDataURL('image/jpeg', 0.6)); } catch {} fr.close(); }
+  return out.length === n ? out : null;
+}
+// fallback: seek a hidden <video> and copy what it shows; a frame that comes out black is tried once more
+async function videoThumbs(f, n, cw, ch) {
+  const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = f.url;
+  await new Promise(r => { v.onloadeddata = r; v.onloadedmetadata = r; v.onerror = r; setTimeout(r, 2500); try { v.load(); } catch {} });
+  const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const ctx = cv.getContext('2d', { willReadFrequently: true });
+  const dark = () => { try { const d = ctx.getImageData(0, 0, cw, ch).data; let sum = 0; for (let i = 0; i < d.length; i += 64) sum += d[i] + d[i + 1] + d[i + 2]; return sum / (d.length / 64) < 12; } catch { return false; } };
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const t = Math.min(f.dur - 0.05, (i + 0.5) * f.dur / n);
+    for (let tries = 0; tries < 2; tries++) {
+      await new Promise(r => { v.onseeked = r; try { v.currentTime = Math.max(0, t + tries * 0.01); } catch { r(); } setTimeout(r, 1200); });
+      if (tries) await new Promise(r => setTimeout(r, 300));
+      try { if (v.readyState >= 2) ctx.drawImage(v, 0, 0, cw, ch); } catch {}
+      if (!dark()) break;
+    }
+    out.push(cv.toDataURL('image/jpeg', 0.6));
+  }
+  v.removeAttribute('src'); try { v.load(); } catch {}
+  return out;
 }
 // thumbnails: whatever is on screen in the timeline first, then the rest; the counter stays up until done
 let thumbRun = 0;
@@ -3671,7 +3703,6 @@ function estimate() {
   return { W, H, mb, secs: Math.max(1, S.total * speed * (W * H) / (1920 * 1080)) };
 }
 const fmtEta = (s) => s < 60 ? `${Math.max(1, Math.round(s))} s` : `${Math.ceil(s / 60)} min`;
-const fmtEtaLong = (s) => s < 60 ? `About ${Math.max(5, Math.round(s / 5) * 5)} seconds left` : `About ${Math.ceil(s / 60)} minute${Math.ceil(s / 60) > 1 ? 's' : ''} left`;
 const SHAPES = [['source', 'Match clips'], ['16:9', 'Widescreen'], ['9:16', 'Vertical'], ['1:1', 'Square']];
 const FITS = [['blur', 'Blurred edges'], ['fit', 'Black bars'], ['fill', 'Crop to fill']];
 const shapeWord = (W, H) => W > H * 1.05 ? 'widescreen' : H > W * 1.05 ? 'vertical' : 'square';
@@ -3755,10 +3786,20 @@ async function runExport() {
   renderExport('making');
   let wake = null; try { wake = await navigator.wakeLock.request('screen'); } catch {}
   const t0 = Date.now(); const [W0, H0] = outSize(); const total = S.total; let lastDraw = 0;
+  // time left: measured from the real speed so far, shown once a second, never jumps up (only a big slowdown resets it)
+  let shown = null, shownAt = 0;
+  const countdown = (eta) => {
+    if (eta == null) return 'Working out the time…';
+    const now = performance.now();
+    if (shown == null || eta > shown + 5) { shown = eta; shownAt = now; }
+    else if (now - shownAt >= 1000) { shown = Math.min(shown - (now - shownAt) / 1000, eta); shownAt = now; }
+    const s = Math.round(shown); if (s < 3) return 'Almost done…';
+    return s < 60 ? `About ${s} seconds left` : `About ${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s left`;
+  };
   try {
     const res = await renderMovie((frac, eta, label, cv) => {
       const b = $('pbar'); if (!b) return; b.style.width = Math.round(frac * 100) + '%'; $('ppct').textContent = Math.round(frac * 100) + '%';
-      $('peta').textContent = S.cancelRender ? 'Stopping…' : label ? label : eta != null ? fmtEtaLong(eta) : 'Working…';
+      $('peta').textContent = S.cancelRender ? 'Stopping…' : label ? label : countdown(eta);
       const now = performance.now(); if (cv && S.expFrameCv && now - lastDraw > 700) { lastDraw = now; try { const c = S.expFrameCv; c.getContext('2d').drawImage(cv, 0, 0, c.width, c.height); } catch {} }
     });
     const blob = res.blob; lastBlob = blob;
