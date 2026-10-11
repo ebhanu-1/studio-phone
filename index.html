@@ -38,7 +38,6 @@
   .tool { flex:0 0 auto; height:44px; padding:0 16px; border-radius:12px; background:var(--surface); box-shadow:0 0 0 .5px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.05); font-size:15px; font-weight:500; color:var(--ink); white-space:nowrap; display:inline-flex; align-items:center; }
   .tool.acc { color:var(--accent); } .tool.red { color:var(--red); }
   .tool:disabled { color:var(--dis2); }
-  .tool.on { background:var(--ink); color:#fff; box-shadow:none; }
   .lnk { color:var(--accent); font-size:17px; min-height:44px; display:inline-flex; align-items:center; gap:3px; }
   .lnk.b { font-weight:600; }
   .lnk:disabled { color:var(--dis2); }
@@ -89,15 +88,8 @@
   #play { width:54px; height:54px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; margin:0 4px; }
   #transport .tc { margin-left:auto; font-variant-numeric:tabular-nums; font-size:15px; color:var(--muted); white-space:nowrap; }
   #transport .tc b { color:var(--ink); font-weight:600; }
-  /* context line + tools */
-  #ctx { display:none; flex:0 0 auto; align-items:center; padding:2px 16px 4px; font-size:13px; color:var(--muted); min-height:28px; }
-  #ctx.on { display:flex; } #ctx b { color:var(--ink); font-weight:600; } #ctx button { margin-left:auto; color:var(--accent); font-size:13px; min-height:28px; padding-left:12px; }
-  #tools { flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:3px 16px 5px; overflow-x:auto; scrollbar-width:none; -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent); }
-  #tools::-webkit-scrollbar { display:none; }
-  #tools .pad { flex:0 0 28px; height:1px; }
   /* ── timeline ── */
   #tlwrap { flex:0 0 auto; height:124px; position:relative; margin-top:4px; }
-  #tlwrap.hascap { height:156px; }
   #tl { position:absolute; inset:0; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; overscroll-behavior-x:contain; scrollbar-width:none; }
   #tl::-webkit-scrollbar { display:none; }
   #tlin { position:relative; margin-left:16px; height:100%; }
@@ -134,44 +126,13 @@
   .seg.sel .hnd { display:block; }
   .seg .hlbl { position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; font-size:13px; font-weight:600; padding:4px 9px; border-radius:8px; display:none; pointer-events:none; white-space:nowrap; z-index:8; font-variant-numeric:tabular-nums; }
   .seg .hlbl.on { display:block; }
-  #lane { position:absolute; left:0; top:122px; height:30px; display:none; }
-  #tlwrap.hascap #lane { display:block; }
-  .cap { position:absolute; top:1px; height:28px; line-height:28px; background:var(--cap); color:var(--oncap); border-radius:7px; font-size:12px; font-weight:600; padding:0 12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; touch-action:none; -webkit-user-select:none; user-select:none; cursor:grab; min-width:24px; }
-  .cap::before, .cap::after { content:''; position:absolute; top:9px; bottom:9px; width:2px; border-left:1px solid rgba(59,30,0,.35); border-right:1px solid rgba(59,30,0,.35); }
-  .cap::before { left:4px; } .cap::after { right:4px; }
-  .cap.sel { box-shadow:0 0 0 2px var(--accent); padding:0 22px; }
-  .cap .cph { display:none; position:absolute; top:0; bottom:0; width:18px; touch-action:none; z-index:1; }
-  .cap.sel .cph { display:block; } .cap .cph.l { left:0; } .cap .cph.r { right:0; }
-  .cap.now { background:#F7A24B; }
-  #lanelbl { position:absolute; top:-34px; background:var(--ink); color:#fff; font-size:13px; font-weight:600; padding:4px 9px; border-radius:8px; display:none; white-space:nowrap; z-index:8; pointer-events:none; font-variant-numeric:tabular-nums; }
-  #lanelbl.on { display:block; }
   #ph { position:absolute; top:40px; bottom:0; width:2px; margin-left:-1px; background:var(--red); z-index:7; touch-action:none; }
   #ph::before { content:''; position:absolute; top:-7px; left:-7px; width:14px; height:14px; border-radius:50%; background:var(--red); box-shadow:0 0 0 2px var(--canvas); }
   #ph .hit { position:absolute; top:-12px; bottom:0; left:-16px; width:34px; }
-  /* ── bottom sheet: rest (tabs only) · medium · tall · large ── */
-  #gap { flex:1 1 0; min-height:0; }
-  #sheet { flex:0 0 auto; display:flex; flex-direction:column; background:var(--surface); border-radius:24px 24px 0 0; box-shadow:0 -10px 30px rgba(0,0,0,.065); position:relative; z-index:10; min-height:0; }
-  #sheethd { flex:0 0 auto; touch-action:none; padding-bottom:10px; }
-  #grab { width:36px; height:5px; border-radius:3px; background:var(--dis2); margin:8px auto 8px; }
-  #mvhd, #caphd { display:none; align-items:center; padding:0 16px 8px; min-height:44px; }
-  #mvhd b { font-size:20px; font-weight:600; flex:1; }
-  #caphd b { flex:1; text-align:center; font-size:17px; font-weight:600; }
-  #panes { display:none; flex:1 1 auto; overflow:auto; background:var(--sheet); padding:14px 16px calc(28px + var(--sab)); -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
-  body.sh-rest #sheet { padding-bottom:max(8px, var(--sab)); }
-  body.sh-medium #gap, body.sh-tall #gap, body.sh-large #gap { display:none; }
-  body.sh-medium #sheet, body.sh-tall #sheet, body.sh-large #sheet { flex:1 1 auto; }
-  body.sh-medium #panes, body.sh-tall #panes, body.sh-large #panes { display:block; }
-  body.sh-medium #ctx, body.sh-medium #tools, body.sh-medium #tlwrap, body.sh-medium #tip, body.sh-medium #missing { display:none; }
-  body.sh-medium #transport { height:52px; } body.sh-medium #play { width:44px; height:44px; } body.sh-medium #transport .tb { display:none; }
-  body.sh-medium #scrub { display:none; } body.sh-medium #scrub2 { display:block; }
-  body.sh-tall #top, body.sh-tall #scrub, body.sh-tall #transport, body.sh-tall #ctx, body.sh-tall #tools, body.sh-tall #tlwrap, body.sh-tall #tip, body.sh-tall #missing, body.sh-tall #status { display:none; }
-  body.sh-tall #stagewrap { padding-top:6px; }
-  body.sh-large #top, body.sh-large #stagewrap, body.sh-large #scrub, body.sh-large #transport, body.sh-large #ctx, body.sh-large #tools, body.sh-large #tlwrap, body.sh-large #tip, body.sh-large #missing, body.sh-large #status { display:none; }
-  body.sh-large #sheet { margin-top:6px; }
-  body.sh-large #mvhd { display:flex; }
-  body.capedit #caphd { display:flex; } body.capedit #tabs { display:none; }
-  #scrub2 { display:none; flex:1; height:28px; position:relative; margin-left:12px; touch-action:none; }
-  #scrub2 .rail, #scrub2 .fill { top:12px; }
+  /* ── the panel under the timeline: always there, the timeline is never covered ── */
+  #sheet { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; background:var(--sheet); border-top:.5px solid var(--hair); margin-top:6px; }
+  #tabs { flex:0 0 auto; margin:10px 16px 0; width:auto; }
+  #panes { flex:1 1 auto; overflow:auto; padding:14px 16px calc(28px + var(--sab)); -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
   .pane { display:none; } .pane.active { display:block; }
   /* segmented control */
   .segc { display:flex; background:var(--segtrack); border-radius:11px; padding:2px; min-height:44px; gap:0; width:100%; }
@@ -181,7 +142,6 @@
   .segc button:disabled { color:var(--dis); }
   .segc button + button:not(.on)::before { content:''; position:absolute; left:0; top:12px; bottom:12px; width:1px; background:rgba(0,0,0,.08); }
   .segc button.on + button::before { display:none; }
-  #tabs { margin:0 16px; }
   /* sheet groups */
   .ctxl { font-size:13px; color:var(--muted); margin:0 4px 14px; }
   .ctxl b { color:var(--ink); font-weight:600; }
@@ -230,6 +190,9 @@
   .tile .aa { font-size:24px; line-height:1.1; height:30px; display:flex; align-items:center; }
   .tile small { font-size:12px; color:var(--muted); }
   .tile.on small { color:var(--accent); }
+  .btnrow { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+  .btnrow .tool { justify-content:center; padding:0 4px; }
+  .clipinfo { font-size:13px; color:var(--muted); margin:8px 4px 0; font-variant-numeric:tabular-nums; }
   .tiles[style*="--n:5"] .tile { padding:9px 2px 8px; } .tiles[style*="--n:5"] small { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
   .segc.c4 button { font-size:14px; padding:0 2px; }
   .sw { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
@@ -238,11 +201,6 @@
   .swc.cust { background:conic-gradient(#f43,#fd0,#3c5,#0bf,#36f,#c3f,#f43); overflow:hidden; }
   .swc.cust input { position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer; }
   .swl { font-size:15px; color:var(--accent); }
-  .caprow { cursor:pointer; padding:10px 16px; min-height:58px; display:block; }
-  .caprow .tm { font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; display:flex; justify-content:space-between; }
-  .caprow .tm em { font-style:normal; color:var(--accent); font-weight:600; }
-  .caprow .tx { font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-  .caprow.now { background:var(--rowtint); }
   .dualbtn { display:flex; gap:8px; } .dualbtn .bbtn { flex:1; }
   .ver { text-align:center; font-size:13px; color:#8E8E93; margin-top:18px; }
   /* ── home ── */
@@ -349,16 +307,16 @@
   #toast { position:fixed; left:50%; top:calc(var(--sat) + 52px); transform:translateX(-50%) translateY(-8px); z-index:9999; background:var(--ink); color:#fff; padding:10px 16px; border-radius:22px; font-size:13px; font-weight:600; opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; max-width:calc(100vw - 32px); text-align:center; display:flex; align-items:center; gap:12px; }
   #toast.on { opacity:1; transform:translateX(-50%) translateY(0); } #toast.act { pointer-events:auto; }
   #toast button { color:#8CB8F5; font-weight:600; font-size:14px; padding:6px 2px; min-height:32px; }
-  body.home #top, body.home #status, body.home #missing, body.home #tip, body.home #stagewrap, body.home #scrub, body.home #transport, body.home #ctx, body.home #tools, body.home #tlwrap, body.home #sheet { visibility:hidden; }
+  body.home #top, body.home #status, body.home #missing, body.home #tip, body.home #stagewrap, body.home #scrub, body.home #transport, body.home #tlwrap, body.home #sheet { visibility:hidden; }
   /* one portrait layout everywhere; on a wide screen it stays phone-width and centred */
   @media (min-width: 560px) { body { max-width:520px; margin:0 auto; left:0; right:0; box-shadow:0 0 0 .5px var(--hair); } #home { max-width:520px; margin:0 auto; } .modal { max-width:520px; } }
 </style>
 </head>
-<body class="sh-rest">
+<body>
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Movies</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v3.0</span>
+  <span id="ver" title="version · build time">v3.1</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -383,24 +341,15 @@
   <button class="tb" id="prevf" title="Back one frame"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5.6v12.8a.9.9 0 0 1-1.4.7L6.4 12.7a.9.9 0 0 1 0-1.4l9.2-6.4a.9.9 0 0 1 1.4.7z"/><rect x="18.4" y="5" width="2.2" height="14" rx="1"/></svg></button>
   <button id="play" title="Play"></button>
   <button class="tb" id="nextf" title="Forward one frame"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.6v12.8a.9.9 0 0 0 1.4.7l9.2-6.4a.9.9 0 0 0 0-1.4L8.4 4.9A.9.9 0 0 0 7 5.6z"/><rect x="3.4" y="5" width="2.2" height="14" rx="1"/></svg></button>
-  <div id="scrub2"><div class="rail" style="position:absolute;left:0;right:0;height:4px;border-radius:2px;background:var(--scrubtrack)"></div><div class="fill" style="position:absolute;left:0;height:4px;border-radius:2px;background:var(--accent)"></div><div class="knob" style="position:absolute;top:6px;width:16px;height:16px;border-radius:50%;background:#fff;margin-left:-8px;box-shadow:0 1px 5px rgba(0,0,0,.25)"></div></div>
   <span class="tc"><b id="tc">0:00.0</b> / <span id="tot">0:00.0</span></span>
 </div>
-<div id="ctx"><span></span><button id="desel">Deselect</button></div>
-<div id="tools"></div>
 <div id="tlwrap">
   <div id="zoom"><button id="zoomout" title="Zoom out"><svg class="i" width="14" height="14" viewBox="0 0 14 14"><path d="M2 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button><button id="zoomin" title="Zoom in"><svg class="i" width="14" height="14" viewBox="0 0 14 14"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
-  <div id="tl"><div id="tlin"><div id="ruler"></div><div id="track"></div><div id="lane"></div><div id="ph"><div class="hit"></div></div></div></div>
+  <div id="tl"><div id="tlin"><div id="ruler"></div><div id="track"></div><div id="ph"><div class="hit"></div></div></div></div>
 </div>
-<div id="gap"></div>
 <div id="sheet">
-  <div id="sheethd">
-    <div id="grab"></div>
-    <div id="mvhd"><b>Movie settings</b><button class="lnk b" id="mvdone">Done</button></div>
-    <div id="caphd"><button class="lnk" id="capback"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Captions</button><b id="capidx">Caption</b><button class="lnk b" id="capdone">Done</button></div>
-    <div id="tabs" class="segc"><button data-tab="clip">Clip</button><button data-tab="text">Text</button><button data-tab="trans">Transitions</button><button data-tab="movie">Movie</button></div>
-  </div>
-  <div id="panes"><div class="pane" id="pane-clip"></div><div class="pane" id="pane-text"></div><div class="pane" id="pane-trans"></div><div class="pane" id="pane-movie"></div></div>
+  <div id="tabs" class="segc"><button data-tab="clip">Clip</button><button data-tab="trans">Transition</button><button data-tab="movie">Movie</button></div>
+  <div id="panes"><div class="pane" id="pane-clip"></div><div class="pane" id="pane-trans"></div><div class="pane" id="pane-movie"></div></div>
 </div>
 <div id="home">
   <div id="homenav"><span class="inl">Movies</span><button class="lnk" id="edit-btn">Edit</button><button class="lnk" id="help-btn">Help</button></div>
@@ -2351,7 +2300,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v3.0 · Oct 11 09:20';
+const VERSION = 'v3.1 · Oct 11 09:40';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -2465,15 +2414,16 @@ function blurBackdrop(ctx, W, H, src, sw, sh, r, blurCache) {
 /* ── project model ──────────────────────────────────────────────────── */
 const PHOTO_MAX = 120, PHOTO_DEFAULT = 4, PHOTO_EDGE = 2048;
 const newCaption = (o) => Object.assign({ uid: uid(), text: '', sub: '', pos: 'bottom', size: 'm', font: 'sf', style: 'clean', color: '#ffffff', start: 0, end: 3 }, o || {});
-const newClip = (fileId, o) => Object.assign({ uid: uid(), fileId, in: null, out: null, speed: 1, mute: false, volume: 1, fadeIn: 0, fadeOut: 0 }, o || {});
+const newClip = (fileId, o) => Object.assign({ uid: uid(), fileId, in: null, out: null, speed: 1, mute: false, volume: 1, fadeIn: 0, fadeOut: 0, text: '' }, o || {});
 function defaultProj() {
-  return { v: 3, id: uid(), created: Date.now(), name: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' movie', clips: [], captions: [],
+  return { v: 4, id: uid(), created: Date.now(), name: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' movie', clips: [], captions: [],
     title: { on: false, text: '', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'sf' },
     end: { on: false, text: 'The End', sub: '', dur: 3, bg: '#0b0f19', color: '#ffffff', font: 'sf' },
     transition: 'none', tdur: 0.5, fadeIn: 0, fadeOut: 0.5, music: null,
+    textLook: { style: 'clean', size: 'm', font: 'sf', color: '#ffffff' },
     out: { res: '1080p', aspect: 'source', fit: 'blur', fps: 30, quality: 'good' } };
 }
-const S = { proj: defaultProj(), files: {}, sel: null, selCap: null, T: 0, playing: false, segs: [], total: 0, undo: [], redo: [], tab: 'clip', musicFile: null, view: 'home', zoom: 1, textBoxes: [], projects: [], exports: [], touched: false };
+const S = { proj: defaultProj(), files: {}, sel: null, T: 0, playing: false, segs: [], total: 0, undo: [], redo: [], tab: 'clip', musicFile: null, view: 'home', zoom: 1, textBoxes: [], projects: [], exports: [], touched: false };
 // files: id -> {id, file, name, size, lastModified, kind:'video'|'photo', url, dur, w, h, thumbs:[dataURL], strip, bitmap (photo), missing}
 function fileOf(c) { return S.files[c.fileId]; }
 function clipName(c) { const f = fileOf(c); return f ? f.name : '(missing clip)'; }
@@ -2511,15 +2461,28 @@ function outSize() {
   return [W, H];
 }
 const missingClips = () => S.proj.clips.filter(c => { const f = fileOf(c); return !f || f.missing; });
-// older projects kept captions on clips (clip-relative times): lift them onto the movie timeline
+// v4 (Clipper v3.1): one text per clip, at the bottom, shown while that clip plays; the look is set for the whole movie.
+// Older projects are simplified on open: per-clip texts / movie-time captions become the clip's text, and the
+// clip-level extras that no longer have controls (speed, volume, mute, fades, photo motion) go back to normal.
 function migrateCaptions() {
-  const p = S.proj; if (!Array.isArray(p.captions)) p.captions = [];
-  if (!p.clips.some(c => c.texts && c.texts.length)) return;
-  computeSegs();
-  for (const c of p.clips) { const sg = S.segs.find(x => x.uid === c.uid); for (const t of c.texts || []) { const start = (sg ? sg.start : 0) + (+t.start || 0); const end = t.dur > 0 ? start + t.dur : (sg ? sg.start + sg.dur : start + 3); p.captions.push(newCaption({ uid: t.uid, text: t.text, sub: t.sub, pos: t.pos, size: t.size, font: t.font, style: t.style, color: t.color, start, end: Math.max(start + 0.3, end) })); } delete c.texts; }
+  const p = S.proj; if (!p.textLook) p.textLook = { style: 'clean', size: 'm', font: 'sf', color: '#ffffff' };
+  if (p.v >= 4 && !(p.captions || []).length && !p.clips.some(c => c.texts)) return; computeSegs();
+  const first = (p.captions || [])[0] || p.clips.map(c => (c.texts || [])[0]).find(Boolean); if (first) Object.assign(p.textLook, { style: first.style || 'clean', size: first.size || 'm', font: first.font || 'sf', color: first.color || '#ffffff' });
+  for (const c of p.clips) { if (!c.text && c.texts && c.texts.length) c.text = c.texts.map(t => t.text).filter(Boolean).join(' '); delete c.texts; }
+  for (const cap of p.captions || []) { const sg = S.segs.find(x => x.kind === 'clip' && cap.start >= x.start - 0.05 && cap.start < x.start + x.dur) || S.segs.find(x => x.kind === 'clip'); if (sg && !sg.clip.text) sg.clip.text = [cap.text, cap.sub].filter(Boolean).join(' '); }
+  for (const c of p.clips) { c.speed = 1; c.mute = false; c.volume = 1; c.fadeIn = 0; c.fadeOut = 0; c.kb = 'in'; }
+  p.captions = []; p.v = 4;
 }
-// captions live at T, with their fade alpha
-function captionsAt(T) { const out = []; for (const c of S.proj.captions || []) { const end = Math.min(c.end, S.total || c.end); if (T >= c.start && T < end) { const fd = Math.min(0.4, (end - c.start) / 3); out.push([c, clamp(Math.min(1, (T - c.start) / fd, (end - T) / fd), 0, 1)]); } } return out; }
+// the clip texts live at T, with their fade alpha (a text shows from its clip's cut to the next cut)
+function captionsAt(T) {
+  const out = []; const L = S.proj.textLook || {};
+  for (let i = 0; i < S.segs.length; i++) {
+    const sg = S.segs[i]; if (sg.kind !== 'clip' || !(sg.clip.text || '').trim()) continue; const nx = S.segs[i + 1];
+    const a = sg.start + (sg.ov || 0) / 2, b = nx ? nx.start + (nx.ov || 0) / 2 : sg.start + sg.dur;
+    if (T >= a && T < b) { const fd = Math.min(0.3, (b - a) / 4); out.push([{ uid: sg.clip.uid, text: sg.clip.text, sub: '', pos: 'bottom', style: L.style || 'clean', size: L.size || 'm', font: L.font || 'sf', color: L.color || '#ffffff' }, clamp(Math.min(1, (T - a) / fd, (b - T) / fd), 0, 1)]); }
+  }
+  return out;
+}
 // which segments are live at T (two during a transition) and how far the transition has come
 function liveSegs(T) { let cur = null, nxt = null; for (const s of S.segs) { if (T >= s.start && T < s.start + s.dur) { if (!cur) cur = s; else nxt = s; } } if (!cur) cur = S.segs[S.segs.length - 1] || null; const a = (nxt && nxt.ov) ? clamp((T - nxt.start) / nxt.ov, 0, 1) : 0; return { cur, nxt, a }; }
 
@@ -2714,11 +2677,7 @@ function layoutStage() {
   const wrap = $('stagewrap'), fr = $('frame'); const ar = outAspect();
   const appH = document.body.clientHeight || window.innerHeight; const vw = Math.max(120, (wrap.clientWidth || window.innerWidth) - 32);
   const sumH = (ids) => ids.reduce((a, id) => a + (($(id) && $(id).offsetHeight) || 0), 0);
-  const m = S.sheet || 'rest'; let maxH;
-  if (m === 'rest') maxH = clamp(appH - sumH(['top', 'status', 'missing', 'tip', 'scrub', 'transport', 'ctx', 'tools', 'tlwrap', 'sheet']) - 10, 90, appH * 0.42);
-  else if (m === 'medium') maxH = clamp(Math.min(appH * 0.40, appH - 44 - 52 - appH * 0.42), 90, 600);
-  else if (m === 'tall') maxH = clamp(appH * 0.30, 90, 400);
-  else maxH = 90;
+  const maxH = clamp(appH - sumH(['top', 'status', 'missing', 'tip', 'scrub', 'transport', 'tlwrap', 'tabs']) - 270, 90, appH * 0.42);
   let w = vw, hh = w / ar; if (hh > maxH) { hh = maxH; w = hh * ar; }
   wrap.style.height = Math.round(hh + 2) + 'px'; fr.style.width = Math.round(w) + 'px'; fr.style.height = Math.round(hh) + 'px';
   const ov = $('ov'); const dpr = Math.min(2, window.devicePixelRatio || 1); ov.width = Math.round(w * dpr); ov.height = Math.round(hh * dpr); overlayKey = null;
@@ -2832,29 +2791,18 @@ function drawOverlay(T) {
 }
 function updateTC() { $('tc').textContent = fmt(S.T); $('tot').textContent = fmt(S.total); const n = S.proj.clips.length; $('navsub').textContent = `${n} clip${n === 1 ? '' : 's'} · ${fmtL(S.total)}`; updateScrub(); const seg = liveSegs(S.T).cur; const f = seg && seg.kind === 'clip' ? fileOf(seg.clip) : null; const ml = $('misslbl'); if (f && f.missing) { ml.classList.add('on'); ml.querySelector('span').textContent = `Clip ${S.proj.clips.indexOf(seg.clip) + 1} of ${n}`; } else ml.classList.remove('on'); }
 // tap a caption on the picture to edit it; drag it up/down to move (snaps to top / middle / lower / bottom)
-const POS_LABEL = { top: 'top', center: 'middle', lower: 'lower third', bottom: 'bottom' };
 $('frame').addEventListener('pointerdown', (ev) => {
   if (!S.segs.length) return;
   const fr = $('frame'); const r = fr.getBoundingClientRect(); const ov = $('ov'); const sx = ov.width / Math.max(1, r.width), sy = ov.height / Math.max(1, r.height);
   const px = (ev.clientX - r.left) * sx, py = (ev.clientY - r.top) * sy;
   const hit = [...S.textBoxes].reverse().find(b => px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h);
-  if (!hit) { const seg = liveSegs(S.T).cur; if (seg && seg.kind === 'clip' && seg.clip.uid !== S.sel) { selectClip(seg.clip.uid); renderTimeline(); renderInspector(); updateTC(); } return; }
-  const t = hit.spec; if (!(S.proj.captions || []).includes(t)) return;
-  ev.preventDefault(); try { fr.setPointerCapture(ev.pointerId); } catch {}
-  player.pause(); S.selCap = t.uid; setTab('text'); renderTimeline(); renderInspector();
-  let moved = false; const x0 = ev.clientX, y0 = ev.clientY, pos0 = t.pos;
-  const posFor = (fy) => fy < 0.28 ? 'top' : fy < 0.56 ? 'center' : fy < 0.8 ? 'lower' : 'bottom';
-  const move = (e) => { if (!moved && Math.hypot(e.clientX - x0, e.clientY - y0) < 8) return; if (!moved) { moved = true; snapshot(); } const np = posFor((e.clientY - r.top) / Math.max(1, r.height)); if (np !== t.pos) { t.pos = np; drawOverlay(S.T); } };
-  const up = () => {
-    fr.removeEventListener('pointermove', move); fr.removeEventListener('pointerup', up); fr.removeEventListener('pointercancel', up);
-    if (moved) { if (t.pos !== pos0) { commit(); say('Caption moved to the ' + POS_LABEL[t.pos]); } else { S.undo.pop(); updateUndoBtns(); } }
-    else { openCaption(t.uid); const ta = $('captext'); if (ta) { ta.focus(); ta.select(); } }
-  };
-  fr.addEventListener('pointermove', move); fr.addEventListener('pointerup', up); fr.addEventListener('pointercancel', up);
+  const seg = liveSegs(S.T).cur; if (!seg || seg.kind !== 'clip') return;
+  if (seg.clip.uid !== S.sel) { selectClip(seg.clip.uid); renderTimeline(); renderInspector(); }
+  if (hit) { player.pause(); const ta = $('cliptext'); if (ta) { ta.focus(); ta.select(); } }
 });
 // scrub bar under the picture
-function updateScrub() { const f = S.total > 0 ? clamp(S.T / S.total, 0, 1) : 0; for (const id of ['scrub', 'scrub2']) { const sc = $(id); const w = sc.clientWidth; if (!w) continue; sc.querySelector('.fill').style.width = (f * w) + 'px'; sc.querySelector('.knob').style.left = (f * w) + 'px'; } }
-for (const id of ['scrub', 'scrub2']) $(id).addEventListener('pointerdown', (ev) => {
+function updateScrub() { const f = S.total > 0 ? clamp(S.T / S.total, 0, 1) : 0; for (const id of ['scrub']) { const sc = $(id); const w = sc.clientWidth; if (!w) continue; sc.querySelector('.fill').style.width = (f * w) + 'px'; sc.querySelector('.knob').style.left = (f * w) + 'px'; } }
+for (const id of ['scrub']) $(id).addEventListener('pointerdown', (ev) => {
   if (!S.segs.length) return; const sc = $(id); try { sc.setPointerCapture(ev.pointerId); } catch {} player.pause();
   const r = sc.getBoundingClientRect(); const at = (e) => player.seek(clamp((e.clientX - r.left) / Math.max(1, r.width), 0, 1) * S.total);
   at(ev); const move = (e) => at(e); const up = () => { sc.removeEventListener('pointermove', move); sc.removeEventListener('pointerup', up); sc.removeEventListener('pointercancel', up); };
@@ -2880,20 +2828,6 @@ $('zoomin').onclick = () => setZoom(S.zoom * 1.5); $('zoomout').onclick = () => 
 })();
 // where a segment's tile goes: from its start to where the next one starts (dissolves overlap), 3 px gap
 function tileBox(i, P) { const seg = S.segs[i], next = S.segs[i + 1]; const end = next ? next.start : seg.start + seg.dur; return { left: seg.start * P, width: Math.max(14, (end - seg.start) * P - 3) }; }
-function renderTools() {
-  const box = $('tools'); box.innerHTML = ''; const c = selClip(); const ctx = $('ctx');
-  if (c) {
-    const f = fileOf(c) || {}; const i = S.proj.clips.indexOf(c), n = S.proj.clips.length;
-    ctx.classList.add('on'); ctx.firstChild.innerHTML = `<b>Clip ${i + 1}</b> · ${isPhoto(c) ? 'photo' : 'video'} · ${clipDur(c).toFixed(1)} s`;
-    const t = (id, label, fn, cls, dis) => { const b = h('button', { class: 'tool' + (cls ? ' ' + cls : ''), id, onclick: fn }, label); if (dis) b.disabled = true; return b; };
-    box.append(t('split', 'Split', splitAtPlayhead, '', f.missing), t('setin', 'Set In', () => trimAtPlayhead('in'), '', f.missing || isPhoto(c)), t('setout', 'Set Out', () => trimAtPlayhead('out'), '', f.missing),
-      t('addtext', 'Text', addCaption), t('movel', 'Earlier', () => moveSel(-1), '', i === 0), t('mover', 'Later', () => moveSel(1), '', i === n - 1), t('remove', 'Remove', removeSel, 'red'), h('span', { class: 'pad' }));
-  } else {
-    ctx.classList.remove('on');
-    box.append(h('label', { class: 'tool acc', for: 'pick' }, 'Add clips'), h('button', { class: 'tool', id: 'addtext', onclick: addCaption }, 'Text'), h('button', { class: 'tool', id: 'sortdate', onclick: sortByDate }, 'Order by date'), h('span', { class: 'pad' }));
-  }
-}
-$('desel').onclick = () => { selectClip(null); renderTimeline(); renderInspector(); };
 function renderRuler(P, W) {
   const r = $('ruler'); r.innerHTML = ''; if (!S.total) return;
   const step = [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600].find(s => s * P >= 58) || 600;
@@ -2906,13 +2840,12 @@ function renderRuler(P, W) {
   r.innerHTML = html;
 }
 function renderTimeline() {
-  renderTools();
   computeSegs(); const track = $('track'); track.innerHTML = ''; const P = pps(); const W = S.total * P;
   $('tlin').style.width = Math.max($('tl').clientWidth - 16, W + 3 + 60 + 90) + 'px';
   S.segs.forEach((seg, i) => {
     const b = tileBox(i, P);
     const el = h('div', { class: 'seg' + (b.width < 56 ? ' tiny' : '') + (seg.kind === 'card' ? ' card' : '') + (seg.photo ? ' photo' : '') + (seg.uid === S.sel ? ' sel' : ''), style: `left:${b.left.toFixed(1)}px;width:${b.width.toFixed(1)}px`, 'data-uid': seg.uid });
-    if (seg.kind === 'card') { el.appendChild(h('div', { class: 'ct' }, seg.card.text || (seg.uid === 'title' ? 'Title' : 'End'))); el.appendChild(h('span', { class: 'dur' }, seg.dur.toFixed(1) + 's')); el.onclick = () => { selectClip(null); S.sel = seg.uid; renderTimeline(); renderInspector(); openTab('movie'); }; }
+    if (seg.kind === 'card') { el.appendChild(h('div', { class: 'ct' }, seg.card.text || (seg.uid === 'title' ? 'Title' : 'End'))); el.appendChild(h('span', { class: 'dur' }, seg.dur.toFixed(1) + 's')); el.onclick = () => { S.sel = seg.uid; setTab('movie'); renderTimeline(); renderInspector(); }; }
     else {
       const c = seg.clip, f = fileOf(c);
       if (f && f.missing) { el.classList.add('missing'); el.appendChild(h('div', { class: 'q' }, 'Missing')); }
@@ -2928,44 +2861,13 @@ function renderTimeline() {
   });
   const addEl = h('label', { class: 'seg add', for: 'pick', title: 'Add clips or photos', style: `left:${S.segs.length ? (W + 3).toFixed(1) : 0}px`, html: '<svg class="i" width="18" height="18" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>Add' });
   track.appendChild(addEl);
-  renderRuler(P, W); renderLane(P); updatePlayhead();
+  renderRuler(P, W); updatePlayhead();
 }
 // while a trim handle moves: re-place every tile from the new segment times (no DOM rebuild)
 function layoutTiles() {
   computeSegs(); const P = pps();
   S.segs.forEach((seg, i) => { const el = document.querySelector(`.seg[data-uid="${seg.uid}"]`); if (!el) return; const b = tileBox(i, P); el.style.left = b.left.toFixed(1) + 'px'; el.style.width = b.width.toFixed(1) + 'px'; const d = el.querySelector('.dur'); if (d) d.textContent = seg.dur.toFixed(1) + 's'; });
   const add = document.querySelector('.seg.add'); if (add) add.style.left = (S.total * P + 3).toFixed(1) + 'px';
-}
-// the caption row: one orange block per caption, in movie time; the selected one has draggable ends
-function renderLane(P) {
-  const lane = $('lane'); lane.innerHTML = ''; const caps = S.proj.captions || [];
-  $('tlwrap').classList.toggle('hascap', caps.length > 0); lane.style.width = $('tlin').style.width;
-  for (const c of caps) {
-    const el = h('div', { class: 'cap' + (c.uid === S.selCap ? ' sel' : ''), style: `left:${(c.start * P).toFixed(1)}px;width:${Math.max(24, (c.end - c.start) * P).toFixed(1)}px`, 'data-cap': c.uid, title: `${fmt(c.start)} – ${fmt(c.end)}` }, c.text || c.sub || 'Caption');
-    if (c.uid === S.selCap) { el.appendChild(h('div', { class: 'cph l', 'data-h': 'l' })); el.appendChild(h('div', { class: 'cph r', 'data-h': 'r' })); }
-    el.addEventListener('pointerdown', (ev) => onCapPointer(ev, el, c, P));
-    lane.appendChild(el);
-  }
-  lane.appendChild(h('div', { id: 'lanelbl' }));
-}
-function onCapPointer(ev, el, c, P) {
-  ev.preventDefault(); ev.stopPropagation(); try { el.setPointerCapture(ev.pointerId); } catch {} player.pause();
-  const hd = ev.target.closest('.cph'); const which = hd ? hd.dataset.h : 'move';
-  const wasSel = S.selCap === c.uid; S.selCap = c.uid; setTab('text'); renderInspector();
-  if (!wasSel) renderTimeline();
-  const el2 = document.querySelector(`.cap[data-cap="${c.uid}"]`) || el; const lbl = $('lanelbl');
-  const st = { start: c.start, end: c.end, x: ev.clientX }; let moved = false; const len = c.end - c.start; const total = Math.max(0.3, S.total);
-  const snapT = (t) => { const pts = [S.T].concat(S.segs.map(s => s.start), [S.total]); for (const p of pts) if (Math.abs(p - t) * P < 8) return p; return Math.round(t * 10) / 10; };
-  const paint = () => { el2.style.left = (c.start * P).toFixed(1) + 'px'; el2.style.width = Math.max(24, (c.end - c.start) * P).toFixed(1) + 'px'; lbl.textContent = `${fmt(c.start)} – ${fmt(c.end)}`; lbl.style.left = el2.style.left; lbl.classList.add('on'); };
-  const move = (e) => {
-    const dx = (e.clientX - st.x) / P; if (!moved && Math.abs(e.clientX - st.x) < 5) return; if (!moved) { moved = true; snapshot(); }
-    if (which === 'l') c.start = clamp(snapT(st.start + dx), 0, st.end - 0.3);
-    else if (which === 'r') c.end = clamp(snapT(st.end + dx), st.start + 0.3, total);
-    else { c.start = clamp(snapT(st.start + dx), 0, total - len); c.end = Math.round((c.start + len) * 100) / 100; }
-    paint(); player.seek(which === 'r' ? c.end - 0.05 : c.start + 0.05);
-  };
-  const up = () => { el2.removeEventListener('pointermove', move); el2.removeEventListener('pointerup', up); el2.removeEventListener('pointercancel', up); lbl.classList.remove('on'); if (moved) commit(); else { player.seek(c.start + 0.05); openCaption(c.uid); } };
-  el2.addEventListener('pointermove', move); el2.addEventListener('pointerup', up); el2.addEventListener('pointercancel', up);
 }
 function updatePlayhead() {
   const P = pps(); $('ph').style.left = (S.T * P).toFixed(1) + 'px';
@@ -2985,7 +2887,6 @@ function onSegPointer(ev, el, c) {
     ev.preventDefault(); ev.stopPropagation(); try { el.setPointerCapture(ev.pointerId); } catch {}
     const which = hnd.dataset.h, d = srcDur(c), sp = c.speed || 1; const lbl = el.querySelector('.hlbl'); const photo = isPhoto(c);
     const st = { in: c.in != null ? c.in : 0, out: c.out != null ? c.out : (photo ? Math.min(d, (c.in || 0) + PHOTO_DEFAULT) : d), x: ev.clientX }; snapshot(); player.pause(); lbl.classList.add('on');
-    const tool = which === 'in' ? $('setin') : $('setout'); if (tool && !photo) tool.classList.add('on');
     let lastF = -1;
     const move = (e) => {
       const dx = (e.clientX - st.x) / P * sp;
@@ -2995,7 +2896,7 @@ function onSegPointer(ev, el, c) {
       layoutTiles(); const s2 = sg(); if (s2) player.seek(which === 'in' ? s2.start + 0.001 : s2.start + s2.dur - 0.03);
       const fr = Math.round((which === 'in' ? (c.in || 0) : (c.out != null ? c.out : d)) * 30); if (fr !== lastF) { lastF = fr; try { navigator.vibrate && navigator.vibrate(1); } catch {} }
     };
-    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); lbl.classList.remove('on'); if (tool) tool.classList.remove('on'); commit(); };
+    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); lbl.classList.remove('on'); commit(); };
     el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
     return;
   }
@@ -3022,67 +2923,26 @@ function onSegPointer(ev, el, c) {
 }
 // tap on empty timeline: move the playhead there and clear the selection (a pan that scrolls does neither)
 $('tl').addEventListener('pointerdown', (ev) => {
-  if (ev.target.closest('.seg') || ev.target.closest('#ph') || ev.target.closest('.cap')) return;
+  if (ev.target.closest('.seg') || ev.target.closest('#ph')) return;
   const x0 = ev.clientX, y0 = ev.clientY, sl0 = $('tl').scrollLeft;
   const up = (e) => { $('tl').removeEventListener('pointerup', up); if (Math.abs(e.clientX - x0) > 6 || Math.abs(e.clientY - y0) > 6 || Math.abs($('tl').scrollLeft - sl0) > 2) return;
     const r = $('tlin').getBoundingClientRect(); const P = pps(); player.pause(); player.seek(clamp(e.clientX - r.left, 0, S.total * P) / P);
-    if (S.sel || S.selCap) { selectClip(null); S.selCap = null; syncCapHd(); renderTimeline(); renderInspector(); } };
+    if (S.sel) { selectClip(null); renderTimeline(); renderInspector(); } };
   $('tl').addEventListener('pointerup', up);
 });
 
-/* ── the bottom sheet: rest (tabs only) · medium (picture + compact transport stay) · tall (picture only) · large ── */
-function syncCapHd() { document.body.classList.toggle('capedit', S.tab === 'text' && !!S.selCap && S.sheet !== 'rest'); }
-function setSheet(m) {
-  S.sheet = m; const b = document.body; b.classList.remove('sh-rest', 'sh-medium', 'sh-tall', 'sh-large'); b.classList.add('sh-' + m); syncCapHd();
-  layoutStage(); overlayKey = null; drawOverlay(S.T); updateScrub(); if (m === 'rest') renderTimelineSoon();
-}
+/* ── the panel under the timeline: Clip · Transition · Movie ──────── */
 function setTab(t) {
-  if (t === 'clip' && !selClip()) t = 'text';
   S.tab = t;
-  document.querySelectorAll('#tabs button').forEach(b => { b.classList.toggle('on', b.dataset.tab === t); b.disabled = b.dataset.tab === 'clip' && !selClip(); });
-  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + t)); syncCapHd();
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + t));
 }
-function openTab(t) { setTab(t); setSheet(S.tab === 'movie' ? 'large' : (S.tab === 'text' && S.selCap) ? 'tall' : 'medium'); $('panes').scrollTop = 0; }
-function closeSheet() { setSheet('rest'); }
-function selectClip(uid) {
-  S.sel = uid;
-  if (uid && (S.tab === 'movie' || S.tab === 'trans' || S.sheet === 'rest')) setTab('clip');
-  if (!uid && S.tab === 'clip') { if (S.sheet !== 'rest') closeSheet(); setTab('text'); }
-  setTab(S.tab);
-}
-const capShowT = (c) => Math.min(c.start + 0.5, (c.start + c.end) / 2);   // a moment where the caption is fully faded in
-function openCaption(id) {
-  S.selCap = id; { const c = (S.proj.captions || []).find(x => x.uid === id); if (c && (S.T < c.start + 0.4 || S.T >= c.end - 0.4)) player.seek(capShowT(c)); } setTab('text'); renderInspector(); renderTimeline();
-  if (id) setSheet('tall'); else syncCapHd();
-  $('panes').scrollTop = 0;
-}
-let sheetDragged = false;
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
-  if (sheetDragged) { sheetDragged = false; return; }
-  if (b.disabled) return; const t = b.dataset.tab;
-  if (S.sheet === 'rest' || t !== S.tab || (t === 'movie') !== (S.sheet === 'large')) openTab(t);
-});
-$('mvdone').onclick = closeSheet;
-$('grab').onclick = () => { if (sheetDragged) return; if (S.sheet === 'rest') openTab(S.tab); else closeSheet(); };
-$('capback').onclick = () => { S.selCap = null; renderInspector(); renderTimeline(); setSheet('medium'); };
-$('capdone').onclick = () => { S.selCap = null; renderInspector(); renderTimeline(); closeSheet(); };
-(function sheetDrag() {
-  const hd = $('sheethd'); let st = null;
-  const move = (e) => { if (st && e.pointerId === st.id && Math.abs(e.clientY - st.y) > 10) st.moved = true; };
-  const end = (e) => {
-    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', end); document.removeEventListener('pointercancel', end);
-    if (!st || e.type === 'pointercancel') { st = null; return; } const dy = e.clientY - st.y; const was = st; st = null; if (!was.moved || Math.abs(dy) < 36) return;
-    sheetDragged = true; setTimeout(() => { sheetDragged = false; }, 350);
-    const m = S.sheet, cap = S.tab === 'text' && S.selCap;
-    if (dy < 0) { if (m === 'rest') openTab(S.tab); else if (m === 'medium' && cap) setSheet('tall'); }
-    else { if (m === 'tall' && cap) setSheet('medium'); else setSheet('rest'); }
-  };
-  hd.addEventListener('pointerdown', (e) => { st = { y: e.clientY, id: e.pointerId, moved: false }; document.addEventListener('pointermove', move); document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end); });
-})();
+function selectClip(uid) { S.sel = uid; if (uid && S.proj.clips.find(c => c.uid === uid)) setTab('clip'); }
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { setTab(b.dataset.tab); $('panes').scrollTop = 0; });
 
 /* ── undo / redo / commit ───────────────────────────────────────────── */
 function snapshot() { S.undo.push(JSON.stringify(S.proj)); if (S.undo.length > 40) S.undo.shift(); S.redo.length = 0; updateUndoBtns(); }
-function fixSel() { if (!S.proj.clips.find(c => c.uid === S.sel)) S.sel = null; if (!(S.proj.captions || []).find(c => c.uid === S.selCap)) S.selCap = null; }
+function fixSel() { if (!S.proj.clips.find(c => c.uid === S.sel)) S.sel = null; }
 function undo() { if (!S.undo.length) return; S.redo.push(JSON.stringify(S.proj)); S.proj = JSON.parse(S.undo.pop()); fixSel(); commit(); say('Undo'); }
 function redo() { if (!S.redo.length) return; S.undo.push(JSON.stringify(S.proj)); S.proj = JSON.parse(S.redo.pop()); fixSel(); commit(); say('Redo'); }
 function updateUndoBtns() { const miss = missingClips().length > 0; $('undo').disabled = !S.undo.length || miss; $('redo').disabled = !S.redo.length || miss; $('export').disabled = !S.proj.clips.length || miss; }
@@ -3091,16 +2951,14 @@ function updateMissingBanner() { const m = missingClips().length; const el = $('
 
 /* ── edit ops ──────────────────────────────────────────────────────── */
 function selClip() { return S.proj.clips.find(c => c.uid === S.sel) || null; }
-function splitAtPlayhead() { const seg = liveSegs(S.T).cur; if (!seg || seg.kind !== 'clip') { say('Put the playhead on a clip'); return; } const c = seg.clip, lt = S.T - seg.start; if (lt < 0.15 || lt > seg.dur - 0.15) { say('Move the playhead inside the clip'); return; } snapshot(); const t = (c.in || 0) + lt * (c.speed || 1); const right = newClip(c.fileId, { in: t, out: c.out != null ? c.out : (isPhoto(c) ? (c.in || 0) + clipDur(c) * (c.speed || 1) : null), speed: c.speed, mute: c.mute, volume: c.volume, fadeOut: c.fadeOut, kb: c.kb }); c.out = t; c.fadeOut = 0; S.proj.clips.splice(S.proj.clips.indexOf(c) + 1, 0, right); S.sel = right.uid; commit(); say('Split'); }
+function splitAtPlayhead() { const seg = liveSegs(S.T).cur; if (!seg || seg.kind !== 'clip') { say('Put the playhead on a clip'); return; } const c = seg.clip, lt = S.T - seg.start; if (lt < 0.15 || lt > seg.dur - 0.15) { say('Move the playhead inside the clip'); return; } snapshot(); const t = (c.in || 0) + lt * (c.speed || 1); const right = newClip(c.fileId, { in: t, out: c.out != null ? c.out : (isPhoto(c) ? (c.in || 0) + clipDur(c) * (c.speed || 1) : null), speed: c.speed, mute: c.mute, volume: c.volume, fadeOut: c.fadeOut, kb: c.kb, text: c.text || '' }); c.out = t; c.fadeOut = 0; S.proj.clips.splice(S.proj.clips.indexOf(c) + 1, 0, right); S.sel = right.uid; commit(); say('Split'); }
 function trimAtPlayhead(which) { const seg = liveSegs(S.T).cur; if (!seg || seg.kind !== 'clip') return; const c = seg.clip, lt = S.T - seg.start, t = (c.in || 0) + lt * (c.speed || 1), d = srcDur(c); snapshot(); if (which === 'in') { c.in = clamp(t, 0, (c.out != null ? c.out : d) - 0.1); if (c.in <= 0.001) c.in = null; } else { c.out = clamp(t, (c.in || 0) + 0.1, d); if (!isPhoto(c) && c.out >= d - 0.001) c.out = null; } S.sel = c.uid; commit(); if (which === 'in') player.seek(seg.start + 0.001); say(which === 'in' ? 'Start trimmed' : 'End trimmed'); }
 function removeSel() { const c = selClip(); if (!c) return; snapshot(); const i = S.proj.clips.indexOf(c); S.proj.clips.splice(i, 1); S.sel = (S.proj.clips[i] || S.proj.clips[i - 1] || {}).uid || null; commit(); say(`Removed ${isPhoto(c) ? 'photo' : 'clip'} (it stays in Photos)`, 5500, { label: 'Undo', fn: undo }); }
 function moveSel(dir) { const c = selClip(); if (!c) return; const i = S.proj.clips.indexOf(c), j = i + dir; if (j < 0 || j >= S.proj.clips.length) return; snapshot(); S.proj.clips.splice(i, 1); S.proj.clips.splice(j, 0, c); commit(); }
-function previewCaption(t) { player.pause(); player.prime(); player.seek(Math.max(0, t.start - 0.3)); S.previewUntil = Math.min(S.total, t.end + 0.3); player.play(); }
+// "Text" puts the cursor in the text box of the clip under the playhead
 function addCaption() {
-  if (!S.segs.length) { say('Add clips first'); return; }
-  snapshot(); const total = S.total; const start = Math.round(clamp(S.T, 0, Math.max(0, total - 0.5)) * 10) / 10; const end = Math.round(Math.min(total, start + 4) * 10) / 10;
-  const c = newCaption({ text: 'Your caption', start, end: Math.max(start + 0.3, end) }); S.proj.captions.push(c); S.selCap = c.uid; commit(); player.seek(start + 0.05);
-  openCaption(c.uid); const ta = $('captext'); if (ta) { ta.focus(); ta.select(); }
+  const seg = liveSegs(S.T).cur; if (!seg || seg.kind !== 'clip') { say('Add clips first'); return; }
+  selectClip(seg.clip.uid); renderTimeline(); renderInspector(); const ta = $('cliptext'); if (ta) { ta.focus(); ta.select(); }
 }
 function sortByDate() { if (S.proj.clips.length < 2) return; snapshot(); S.proj.clips.sort((a, b) => ((fileOf(a) || {}).lastModified || 0) - ((fileOf(b) || {}).lastModified || 0)); commit(); say('Clips ordered by date', 3000, { label: 'Undo', fn: undo }); }
 $('play').onclick = () => player.toggle(); $('tostart').onclick = () => player.seek(0); $('prevf').onclick = () => { player.pause(); player.seek(S.T - 1 / 30); }; $('nextf').onclick = () => { player.pause(); player.seek(S.T + 1 / 30); }; $('undo').onclick = undo; $('redo').onclick = redo;
@@ -3128,80 +2986,45 @@ const stepper = (dec, inc) => h('div', { class: 'step2' }, h('button', { onclick
 // choice tiles: items = [[value, pictureNode, name]]
 const tiles = (n, items, value, onpick) => { const box = h('div', { class: 'tiles', style: `--n:${n}` }); for (const [v, pic, name] of items) box.appendChild(h('button', { class: 'tile' + (String(v) === String(value) ? ' on' : ''), onclick: () => onpick(v) }, pic, name != null ? h('small', null, name) : null)); return box; };
 const tintBtn = (label, fn) => h('button', { class: 'bbtn tint', style: 'width:auto;min-height:36px;font-size:15px;padding:0 12px;border-radius:10px;white-space:nowrap;flex:0 0 auto', onclick: fn }, label);
-const FADE = 0.5;
-function renderInspector() { renderClipPane(); renderTextPane(); renderTransPane(); renderMoviePane(); setTab(S.tab); }
+function renderInspector() { renderClipPane(); renderTransPane(); renderMoviePane(); setTab(S.tab); }
+// one way of doing a clip: drag its ends to trim, one line of text at the bottom, split / move / remove
 function renderClipPane() {
   const pane = $('pane-clip'); pane.innerHTML = ''; const c = selClip();
-  if (!c) { pane.appendChild(h('div', { class: 'empty' }, S.proj.clips.length ? 'Tap a clip in the timeline to change it.' : 'Add clips or photos to start your movie.')); return; }
+  if (!c) {
+    pane.appendChild(h('div', { class: 'empty' }, S.proj.clips.length ? 'Tap a clip to give it a line of text, trim it, split it or remove it.' : 'Add clips or photos to start your movie.'));
+    pane.appendChild(h('div', { class: 'dualbtn' }, h('label', { class: 'bbtn tint', for: 'pick' }, 'Add clips'), S.proj.clips.length > 1 ? h('button', { class: 'bbtn quiet', style: 'background:var(--surface)', id: 'sortdate', onclick: sortByDate }, 'Order by date') : null));
+    return;
+  }
   const f = fileOf(c) || {}; const d = srcDur(c); const photo = isPhoto(c); const i = S.proj.clips.indexOf(c), n = S.proj.clips.length;
-  const a = c.in || 0, b = c.out != null ? c.out : (photo ? a + PHOTO_DEFAULT : d);
-  const when = f.lastModified ? new Date(f.lastModified).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
-  pane.appendChild(h('div', { class: 'ctxl', html: `<b>Clip ${i + 1} of ${n}</b> · ${photo ? 'photo' : 'video'} · ` + (photo ? (when ? 'taken ' + esc(when) : esc(clipName(c))) : `using ${(b - a).toFixed(1)} s of ${d.toFixed(1)} s`) }));
+  pane.appendChild(h('div', { class: 'ctxl', html: `<b>Clip ${i + 1} of ${n}</b> · ${photo ? 'photo' : 'video'} · ${clipDur(c).toFixed(1)} s` }));
   if (f.missing) {
-    pane.appendChild(grp(null, null, h('div', { class: 'banner on', style: 'margin:0' }, h('b', null, 'This clip isn’t loaded'), h('p', null, `${esc(clipName(c))} needs to be picked again from Photos. Pick it and it drops back into place.`), h('button', { class: 'bbtn tint sm', onclick: repickClips }, 'Pick it again'))));
+    pane.appendChild(grp(null, null, h('div', { class: 'banner on', style: 'margin:0' }, h('b', null, 'This clip isn’t loaded'), h('p', null, `${clipName(c)} needs to be picked again from Photos. Pick it and it drops back into place.`), h('button', { class: 'bbtn tint sm', onclick: repickClips }, 'Pick it again'))));
     pane.appendChild(h('button', { class: 'bbtn quiet red', style: 'background:var(--surface)', onclick: removeSel }, 'Remove from movie'));
     return;
   }
-  const fades = grp('Fade', null, list(lrow('Fade in', toggle(+c.fadeIn > 0, v => { snapshot(); c.fadeIn = v ? FADE : 0; commit(); })), lrow('Fade out', toggle(+c.fadeOut > 0, v => { snapshot(); c.fadeOut = v ? FADE : 0; commit(); }))));
+  pane.appendChild(h('div', { class: 'btnrow' }, h('button', { class: 'tool', id: 'split', onclick: splitAtPlayhead }, 'Split'), h('button', { class: 'tool', id: 'movel', onclick: () => moveSel(-1) }, 'Earlier'), h('button', { class: 'tool', id: 'mover', onclick: () => moveSel(1) }, 'Later'), h('button', { class: 'tool red', id: 'remove', onclick: removeSel }, 'Remove')));
+  if (i === 0) pane.querySelector('#movel').disabled = true;
+  if (i === n - 1) pane.querySelector('#mover').disabled = true;
+  pane.appendChild(h('div', { style: 'height:18px' }));
+  const show = () => { const sg = S.segs.find(x => x.uid === c.uid); if (sg && (S.T < sg.start || S.T >= sg.start + sg.dur)) player.seek(sg.start + Math.min(0.6, sg.dur / 2)); overlayKey = null; drawOverlay(S.T); };
+  let snapped = false;
+  const ta = h('input', { type: 'text', id: 'cliptext', placeholder: 'Text at the bottom of this clip', enterkeyhint: 'done',
+    onfocus: () => { player.pause(); show(); snapped = false; },
+    oninput: (e) => { if (!snapped) { snapshot(); snapped = true; } c.text = e.target.value; show(); saveLocal(); },
+    onkeydown: (e) => { if (e.key === 'Enter') e.target.blur(); } });
+  ta.value = c.text || '';
+  pane.appendChild(grp('Text', null, list(lrow(ta)), h('div', { class: 'note' }, 'Shows at the bottom while this clip plays. Its look is set once for the whole movie, under Movie.')));
   if (photo) {
     const secs = Math.round(clipDur(c) * 10) / 10;
-    pane.appendChild(grp('Show for', `${secs} second${secs === 1 ? '' : 's'}`, segc([2, 3, 4, 6, 8, 10].map(s => [s, `${s} s`]), secs, v => { snapshot(); c.in = null; c.out = v; commit(); })));
-    const frameIn = (inner) => h('div', { class: 'pic', html: `<svg width="56" height="36" viewBox="0 0 56 36" fill="none">${inner}</svg>` });
-    pane.appendChild(grp('Motion', null, tiles(3, [
-      ['in', frameIn('<rect x="3" y="3" width="50" height="30" rx="3" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/><rect x="16" y="10" width="24" height="16" rx="2" stroke="#fff" stroke-width="2"/><path d="M41 27l7 4M15 9 8 5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'), 'Slow zoom in'],
-      ['out', frameIn('<rect x="16" y="10" width="24" height="16" rx="2" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/><rect x="3" y="3" width="50" height="30" rx="3" stroke="#fff" stroke-width="2"/><path d="M47 30l-6-3M9 6l6 3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>'), 'Slow zoom out'],
-      ['none', frameIn('<rect x="3" y="3" width="50" height="30" rx="3" stroke="#fff" stroke-width="2"/>'), 'Still']], c.kb || 'in', v => { snapshot(); c.kb = v; commit(); })));
-    pane.appendChild(fades); return;
+    pane.appendChild(grp('Show for', `${secs} second${secs === 1 ? '' : 's'}`, segc([2, 3, 4, 6, 8].map(x => [x, `${x} s`]), secs, v => { snapshot(); c.in = null; c.out = v; commit(); })));
+  } else {
+    const a = c.in || 0, b = c.out != null ? c.out : d;
+    const trim = grp('Length', null, h('div', { class: 'clipinfo' }, (c.in != null || c.out != null) ? `Uses ${fmt(a)} – ${fmt(b)} of the ${fmt(d)} clip. ` : `The whole ${fmt(d)} clip. `, 'Drag the blue ends of the clip in the timeline to keep just the good part. Split cuts it at the red line; hold a clip and drag it to move it.'));
+    if (c.in != null || c.out != null) trim.appendChild(h('button', { class: 'lnk', style: 'font-size:15px;margin-left:4px', onclick: () => { snapshot(); c.in = null; c.out = null; commit(); } }, 'Use the whole clip'));
+    pane.appendChild(trim);
   }
-  const F = 1 / 30;
-  const seekIn = () => { const s = S.segs.find(x => x.uid === c.uid); if (s) player.seek(s.start + 0.001); };
-  const seekOut = () => { const s = S.segs.find(x => x.uid === c.uid); if (s) player.seek(s.start + s.dur - 0.03); };
-  const setIn = (t) => { snapshot(); c.in = clamp(t, 0, b - 0.1); if (c.in <= 0.001) c.in = null; commit(); seekIn(); };
-  const setOut = (t) => { snapshot(); c.out = clamp(t, a + 0.1, d); if (c.out >= d - 0.001) c.out = null; commit(); seekOut(); };
-  const trimRows = [lrow(h('span', { class: 'k tn' }, `Starts at ${fmt(a)}`), stepper(() => setIn(a - F), () => setIn(a + F))), lrow(h('span', { class: 'k tn' }, `Ends at ${fmt(b)}`), stepper(() => setOut(b - F), () => setOut(b + F)))];
-  if (c.in != null || c.out != null) trimRows.push(h('div', { class: 'lrow tap', style: 'color:var(--accent)', onclick: () => { snapshot(); c.in = null; c.out = null; commit(); } }, 'Use the whole clip'));
-  pane.appendChild(grp('Trim', null, list(...trimRows)));
-  pane.appendChild(grp('Speed', null, segc([[0.25, '¼×'], [0.5, '½×'], [1, '1×'], [2, '2×'], [4, '4×']], c.speed || 1, v => { snapshot(); c.speed = v; commit(); })));
-  const [vr, vv] = slider(c.volume == null ? 1 : c.volume, 0, 2, 0.05, v => { c.volume = v; player.refresh(); saveLocal(); }, v => Math.round(v * 100) + '%', !!c.mute);
-  pane.appendChild(grp('Sound', null, list(lrow(h('span', { style: 'flex:0 0 auto' }, 'Volume'), vr, vv), lrow('Mute this clip', toggle(c.mute, v => { snapshot(); c.mute = v; commit(); })))));
-  pane.appendChild(fades);
 }
-const POS_OPTS = [['top', 'Top'], ['center', 'Middle'], ['lower', 'Lower third'], ['bottom', 'Bottom']];
 const STYLE_OPTS = [['clean', 'Clean', 'text-shadow:0 1px 3px rgba(0,0,0,.9)'], ['box', 'Box', 'background:rgba(0,0,0,.75);padding:2px 8px;border-radius:3px'], ['bar', 'Bar', ''], ['outline', 'Outline', '-webkit-text-stroke:1.5px #1D1D1F;paint-order:stroke fill']];
-function renderTextPane() {
-  const pane = $('pane-text'); pane.innerHTML = ''; const caps = (S.proj.captions || []).slice().sort((a, b) => a.start - b.start);
-  const t = caps.find(x => x.uid === S.selCap);
-  $('capidx').textContent = t ? `Caption ${caps.indexOf(t) + 1} of ${caps.length}` : 'Caption'; syncCapHd();
-  if (!t) {
-    pane.appendChild(h('div', { class: 'grp' }, h('button', { class: 'bbtn', id: 'addcap', onclick: addCaption }, `Add caption at ${fmt(S.T)}`)));
-    if (!caps.length) { pane.appendChild(h('div', { class: 'empty' }, 'No captions yet. A caption shows over whatever is playing at that moment; it sits on its own orange row under the clips.')); return; }
-    const rows = caps.map(c => { const now = S.T >= c.start && S.T < c.end; return h('div', { class: 'lrow caprow' + (now ? ' now' : ''), onclick: () => { player.pause(); player.seek(c.start + 0.05); openCaption(c.uid); } }, h('div', { class: 'tm' }, h('span', null, `${fmt(c.start)} – ${fmt(c.end)}`), now ? h('em', null, 'showing now') : null), h('div', { class: 'tx' }, c.text || c.sub || '(empty)')); });
-    pane.appendChild(grp('Captions in this movie', String(caps.length), list(...rows)));
-    return;
-  }
-  const live = () => { if (S.T < t.start + 0.4 || S.T >= t.end - 0.4) player.seek(capShowT(t)); overlayKey = null; drawOverlay(S.T); saveLocal(); };
-  const relabel = () => { const blk = document.querySelector(`.cap[data-cap="${t.uid}"]`); if (blk && blk.firstChild && blk.firstChild.nodeType === 3) blk.firstChild.textContent = t.text || t.sub || 'Caption'; };
-  const tx = h('input', { type: 'text', id: 'captext', placeholder: 'Caption text', oninput: (e) => { t.text = e.target.value; live(); relabel(); } }); tx.value = t.text;
-  const sb = h('input', { type: 'text', placeholder: 'Optional second line', oninput: (e) => { t.sub = e.target.value; live(); relabel(); } }); sb.value = t.sub || '';
-  pane.appendChild(grp(null, null, list(lrow(tx), lrow(sb))));
-  const pick = (k) => (v) => { t[k] = v; live(); renderTextPane(); };
-  pane.appendChild(grp('Position', null, segc(POS_OPTS, t.pos, pick('pos'), 'c4')));
-  pane.appendChild(grp('Style', null, tiles(4, STYLE_OPTS.map(([v, l, st]) => [v, h('div', { class: 'pic', style: v === 'bar' ? 'align-items:flex-end;padding-bottom:6px' : '' }, v === 'bar' ? h('div', { style: 'width:100%;background:rgba(0,0,0,.6);font-size:13px;font-weight:600;padding:2px 6px;text-align:left' }, 'Aa') : h('span', { style: 'font-size:15px;font-weight:700;' + st }, 'Aa')), l]), t.style, pick('style'))));
-  pane.appendChild(grp('Size', null, segc([['s', 'Small', { style: 'font-size:12px' }], ['m', 'Medium', { style: 'font-size:14px' }], ['l', 'Large', { style: 'font-size:16px' }], ['xl', 'Huge', { style: 'font-size:19px' }]], t.size, pick('size'))));
-  pane.appendChild(grp('Font', fontOf(t.font)[1], tiles(5, DESIGN_FONTS.map(id => { const f = fontOf(id); return [id, h('span', { class: 'aa', style: `font-family:${f[2]};font-weight:${f[3]}` }, 'Aa'), f[1]]; }), t.font, pick('font'))));
-  const custom = h('input', { type: 'color', oninput: (e) => { t.color = e.target.value; live(); } }); custom.value = /^#[0-9a-f]{6}$/i.test(t.color || '') ? t.color : '#ffffff';
-  const presets = ['#ffffff', '#ffd60a', '#1d1d1f']; const isPreset = presets.includes(String(t.color || '').toLowerCase());
-  pane.appendChild(grp('Color', null, h('div', { class: 'sw' }, ...presets.map(c => h('button', { class: 'swc' + (String(t.color || '').toLowerCase() === c ? ' on' : ''), style: `background:${c}`, 'aria-label': c, onclick: () => pick('color')(c) })), h('span', { class: 'swc cust' + (isPreset ? '' : ' on') }, custom), h('span', { class: 'swl' }, 'Custom…'))));
-  const total = Math.max(0.3, S.total);
-  const setS = (v) => { snapshot(); t.start = clamp(Math.round(v * 10) / 10, 0, t.end - 0.3); commit(); player.seek(t.start + 0.05); };
-  const setE = (v) => { snapshot(); t.end = clamp(Math.round(v * 10) / 10, t.start + 0.3, total); commit(); player.seek(t.end - 0.05); };
-  pane.appendChild(grp('When it shows', null, list(
-    lrow(h('span', { class: 'k tn', style: 'white-space:nowrap' }, `Starts ${fmt(t.start)}`), tintBtn('Use playhead', () => setS(S.T))),
-    lrow(h('span', { class: 'k tn', style: 'white-space:nowrap' }, `Ends ${fmt(t.end)}`), tintBtn('Use playhead', () => setE(S.T)))),
-    h('div', { class: 'note' }, `Shows for ${(t.end - t.start).toFixed(1)} s. You can also drag the orange block under the clips, or its ends.`)));
-  pane.appendChild(h('div', { class: 'dualbtn' }, h('button', { class: 'bbtn tint', onclick: () => previewCaption(t) }, 'Preview this caption'),
-    h('button', { class: 'bbtn quiet red', style: 'background:var(--surface);flex:0 0 auto;width:auto;padding:0 22px', onclick: () => { snapshot(); S.proj.captions.splice(S.proj.captions.indexOf(t), 1); S.selCap = null; commit(); setSheet('medium'); say('Caption deleted', 5500, { label: 'Undo', fn: undo }); } }, 'Delete')));
-}
 const TRANSITIONS = [['none', 'Cut'], ['fade', 'Dissolve'], ['black', 'To black'], ['wipe', 'Wipe'], ['slide', 'Slide']];
 const TR_PIC = {
   none: '<rect x="1" y="3" width="20" height="20" rx="2" fill="#9BB6E0"/><rect x="23" y="3" width="20" height="20" rx="2" fill="#F3B57A"/>',
@@ -3245,6 +3068,20 @@ function renderMoviePane() {
   pane.appendChild(grp('Ending', null, list(lrow('End card', cardToggle(p.end, false)), ...(p.end.on ? cardFields(p.end, false) : [])), p.end.on ? cardLook(p.end) : null,
     h('div', { style: 'height:12px' }),
     list(lrow('Fade in from black', toggle(+p.fadeIn > 0, v => { snapshot(); p.fadeIn = v ? 1 : 0; commit(); })), lrow('Fade out to black', toggle(+p.fadeOut > 0, v => { snapshot(); p.fadeOut = v ? 1 : 0; commit(); })))));
+  // the look of every clip's text, set once for the movie
+  const L = p.textLook || (p.textLook = { style: 'clean', size: 'm', font: 'sf', color: '#ffffff' });
+  const setL = (k) => (v) => { snapshot(); L[k] = v; saveLocal(); overlayKey = null; drawOverlay(S.T); renderMoviePane(); };
+  const presets = ['#ffffff', '#ffd60a', '#1d1d1f']; const isPreset = presets.includes(String(L.color || '').toLowerCase());
+  const custom = h('input', { type: 'color', onchange: (e) => setL('color')(e.target.value) }); custom.value = /^#[0-9a-f]{6}$/i.test(L.color || '') ? L.color : '#ffffff';
+  pane.appendChild(grp('Text on clips', null,
+    tiles(4, STYLE_OPTS.map(([v, l, st]) => [v, h('div', { class: 'pic', style: v === 'bar' ? 'align-items:flex-end;padding-bottom:6px' : '' }, v === 'bar' ? h('div', { style: 'width:100%;background:rgba(0,0,0,.6);font-size:13px;font-weight:600;padding:2px 6px;text-align:left' }, 'Aa') : h('span', { style: 'font-size:15px;font-weight:700;' + st }, 'Aa')), l]), L.style, setL('style')),
+    h('div', { style: 'height:10px' }),
+    segc([['s', 'Small', { style: 'font-size:12px' }], ['m', 'Medium', { style: 'font-size:14px' }], ['l', 'Large', { style: 'font-size:16px' }], ['xl', 'Huge', { style: 'font-size:19px' }]], L.size, setL('size')),
+    h('div', { class: 'glab', style: 'margin-top:12px' }, 'Font', h('span', null, fontOf(L.font)[1])),
+    tiles(5, DESIGN_FONTS.map(id => { const f = fontOf(id); return [id, h('span', { class: 'aa', style: `font-family:${f[2]};font-weight:${f[3]}` }, 'Aa'), f[1]]; }), L.font, setL('font')),
+    h('div', { class: 'glab', style: 'margin-top:12px' }, 'Color'),
+    h('div', { class: 'sw' }, ...presets.map(c => h('button', { class: 'swc' + (String(L.color || '').toLowerCase() === c ? ' on' : ''), style: `background:${c}`, 'aria-label': c, onclick: () => setL('color')(c) })), h('span', { class: 'swc cust' + (isPreset ? '' : ' on') }, custom), h('span', { class: 'swl' }, 'Custom…')),
+    h('div', { class: 'note' }, 'Each clip’s text is typed in the Clip tab and shows at the bottom while that clip plays.')));
   const m = p.music;
   const mp = h('input', { type: 'file', accept: 'audio/*,.m4a,.mp3,.aac,.wav', style: 'display:none', onchange: async (e) => { const f = e.target.files[0]; if (!f) return; snapshot(); S.musicFile = f; S.musicBuf = null; p.music = { name: f.name, mode: (m && m.mode) || 'mix', volume: (m && m.volume) || 0.6, offset: 0, status: 'checking…' }; commit(); await checkMusic(); commit(); } });
   pane.appendChild(mp);
@@ -3277,7 +3114,7 @@ async function loadLists() {
   if (S.memExports) S.exports = S.memExports.filter(x => !S.exports.find(y => y.id === x.id)).concat(S.exports);
 }
 function showHome() { player.pause(); S.view = 'home'; S.homeEdit = false; $('home').classList.add('on'); $('home').classList.remove('editing'); $('edit-btn').textContent = 'Edit'; document.body.classList.add('home'); clearTimeout(saveT); persistProject().finally(() => loadLists().then(renderHome)); renderHome(); }
-function showEditor() { S.view = 'editor'; $('home').classList.remove('on'); document.body.classList.remove('home'); $('name').textContent = S.proj.name; S.tab = 'text'; S.sheet = 'rest'; setSheet('rest'); setTab('text'); commit(); renderInspector(); }
+function showEditor() { S.view = 'editor'; $('home').classList.remove('on'); document.body.classList.remove('home'); $('name').textContent = S.proj.name; migrateCaptions(); setTab('clip'); commit(); renderInspector(); }
 function thumbEl(src, cls, style) { const el = h('div', { class: cls || 'th', style: style || '' }); if (src) el.style.backgroundImage = `url(${src})`; return el; }
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const dayStr = (ms) => { const d = new Date(ms), now = new Date(); const day = 864e5; const a = new Date(d.getFullYear(), d.getMonth(), d.getDate()), b = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const k = Math.round((b - a) / day); return k === 0 ? 'Today' : k === 1 ? 'Yesterday' : dateStr(ms); };
@@ -3326,7 +3163,7 @@ function renderHome() {
 }
 $('home-body').addEventListener('scroll', () => $('home').classList.toggle('scrolled', $('home-body').scrollTop > 36), { passive: true });
 $('edit-btn').onclick = () => { S.homeEdit = !S.homeEdit; $('home').classList.toggle('editing', S.homeEdit); $('edit-btn').textContent = S.homeEdit ? 'Done' : 'Edit'; };
-function resetEditorState() { S.sel = null; S.selCap = null; overlayKey = null; S.T = 0; S.undo.length = 0; S.redo.length = 0; S.zoom = 1; S.musicFile = null; S.musicBuf = null; S.touched = false; try { const au = $('music'); au.pause(); au.removeAttribute('src'); delete au.dataset.name; } catch {} for (const v of player.vids) { v.pause(); v.removeAttribute('src'); delete v.dataset.src; v.classList.remove('on'); } }
+function resetEditorState() { S.sel = null; overlayKey = null; S.T = 0; S.undo.length = 0; S.redo.length = 0; S.zoom = 1; S.musicFile = null; S.musicBuf = null; S.touched = false; try { const au = $('music'); au.pause(); au.removeAttribute('src'); delete au.dataset.name; } catch {} for (const v of player.vids) { v.pause(); v.removeAttribute('src'); delete v.dataset.src; v.classList.remove('on'); } }
 function newMovie() { resetEditorState(); S.files = {}; S.proj = defaultProj(); const base = S.proj.name; let k = 2; const taken = new Set((S.projects || []).map(p => p.name)); while (taken.has(S.proj.name)) S.proj.name = `${base} ${k++}`; showEditor(); }
 async function openProject(id) {
   let rec = null; try { rec = await DB.get('projects', id); } catch {}
