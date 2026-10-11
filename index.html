@@ -93,10 +93,10 @@
   #tl { position:absolute; inset:0; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; overscroll-behavior-x:contain; scrollbar-width:none; }
   #tl::-webkit-scrollbar { display:none; }
   #tlin { position:relative; margin-left:16px; height:100%; }
-  #ruler { position:absolute; left:0; top:0; height:36px; right:0; pointer-events:none; }
-  #ruler span { position:absolute; top:12px; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; transform:translateX(-1px); white-space:nowrap; }
-  #ruler i { position:absolute; bottom:2px; width:1px; height:5px; background:#C7C7CC; }
-  #ruler i.maj { height:8px; background:#AEAEB2; }
+  #ruler { position:absolute; left:-16px; top:4px; height:30px; right:0; pointer-events:none; background:#EDEDF1; border-radius:8px; }
+  #ruler span { position:absolute; top:8px; margin-left:16px; font-size:11px; font-weight:600; color:var(--red); font-variant-numeric:tabular-nums; transform:translateX(-1px); white-space:nowrap; }
+  #ruler i { position:absolute; bottom:2px; width:1px; height:5px; margin-left:16px; background:#F2A59D; }
+  #ruler i.maj { height:8px; background:var(--red); }
   #zoom { position:absolute; right:16px; top:2px; z-index:6; display:flex; background:var(--surface); border-radius:10px; box-shadow:0 0 0 .5px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.05); }
   #zoom button { width:44px; height:32px; display:flex; align-items:center; justify-content:center; color:var(--accent); position:relative; }
   #zoom button + button { box-shadow:-.5px 0 0 var(--hair); }
@@ -190,7 +190,7 @@
   .tile .aa { font-size:24px; line-height:1.1; height:30px; display:flex; align-items:center; }
   .tile small { font-size:12px; color:var(--muted); }
   .tile.on small { color:var(--accent); }
-  .btnrow { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+  .btnrow { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
   .btnrow .tool { justify-content:center; padding:0 4px; }
   .clipinfo { font-size:13px; color:var(--muted); margin:8px 4px 0; font-variant-numeric:tabular-nums; }
   .tiles[style*="--n:5"] .tile { padding:9px 2px 8px; } .tiles[style*="--n:5"] small { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
@@ -302,6 +302,10 @@
   #saving .box { background:var(--surface); border-radius:16px; padding:22px 24px; max-width:300px; box-shadow:0 10px 40px rgba(0,0,0,.2); }
   #saving .spin { width:30px; height:30px; border-radius:50%; border:3px solid var(--tint); border-top-color:var(--accent); animation:spin .9s linear infinite; margin:0 auto 12px; }
   @keyframes spin { to { transform:rotate(360deg); } }
+  .savedok { position:fixed; inset:0; z-index:700; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.18); padding:30px; }
+  .savedok .box { background:var(--surface); border-radius:18px; padding:22px 26px; text-align:center; max-width:280px; box-shadow:0 10px 40px rgba(0,0,0,.2); }
+  .savedok i { width:54px; height:54px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; }
+  .savedok b { display:block; font-size:19px; font-weight:600; } .savedok span { display:block; font-size:14px; color:var(--muted); margin-top:6px; line-height:1.4; }
   #saving b { font-size:17px; font-weight:600; display:block; margin-bottom:6px; }
   #saving span { font-size:13px; color:var(--muted); }
   #toast { position:fixed; left:50%; top:calc(var(--sat) + 52px); transform:translateX(-50%) translateY(-8px); z-index:9999; background:var(--ink); color:#fff; padding:10px 16px; border-radius:22px; font-size:13px; font-weight:600; opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; max-width:calc(100vw - 32px); text-align:center; display:flex; align-items:center; gap:12px; }
@@ -316,7 +320,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Movies</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v3.1</span>
+  <span id="ver" title="version · build time">v3.2</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -2300,7 +2304,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v3.1 · Oct 11 09:40';
+const VERSION = 'v3.2 · Oct 11 10:08';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -2580,7 +2584,7 @@ async function makeThumbs(f, n) {
   // one strip image for the timeline background
   const strip = document.createElement('canvas'); strip.width = cw * out.length; strip.height = ch; const sc = strip.getContext('2d');
   await Promise.all(out.map((u, i) => new Promise(r => { const im = new Image(); im.onload = () => { sc.drawImage(im, i * cw, 0); r(); }; im.onerror = r; im.src = u; })));
-  f.strip = strip.toDataURL('image/jpeg', 0.7);
+  f.strip = strip.toDataURL('image/jpeg', 0.7); f.stripAR = strip.width / strip.height;
 }
 // thumbnails: whatever is on screen in the timeline first, then the rest; the counter stays up until done
 let thumbRun = 0;
@@ -2827,6 +2831,8 @@ $('zoomin').onclick = () => setZoom(S.zoom * 1.5); $('zoomout').onclick = () => 
   tl.addEventListener('gesturestart', (e) => e.preventDefault());
 })();
 // where a segment's tile goes: from its start to where the next one starts (dissolves overlap), 3 px gap
+// slide a video tile's filmstrip so it starts at the clip's trimmed start (h = tile height)
+function stripOffset(el, c, hh) { const f = fileOf(c); if (!f || !f.stripAR || isPhoto(c) || !(f.dur > 0)) return; el.style.backgroundPositionX = (-((c.in || 0) / f.dur) * f.stripAR * hh).toFixed(1) + 'px'; }
 function tileBox(i, P) { const seg = S.segs[i], next = S.segs[i + 1]; const end = next ? next.start : seg.start + seg.dur; return { left: seg.start * P, width: Math.max(14, (end - seg.start) * P - 3) }; }
 function renderRuler(P, W) {
   const r = $('ruler'); r.innerHTML = ''; if (!S.total) return;
@@ -2849,7 +2855,7 @@ function renderTimeline() {
     else {
       const c = seg.clip, f = fileOf(c);
       if (f && f.missing) { el.classList.add('missing'); el.appendChild(h('div', { class: 'q' }, 'Missing')); }
-      else if (f && f.strip) { el.style.backgroundImage = `url(${f.strip})`; if (!seg.photo) el.style.backgroundSize = 'auto 100%'; }
+      else if (f && f.strip) { el.style.backgroundImage = `url(${f.strip})`; if (!seg.photo) { el.style.backgroundSize = 'auto 100%'; stripOffset(el, c, seg.uid === S.sel ? 76 : 60); } }
       const bd = h('div', { class: 'bd' });
       if (c.speed && c.speed !== 1) bd.appendChild(h('span', null, c.speed < 1 ? `${c.speed}×` : `${c.speed}×`));
       if (c.mute && !seg.photo) bd.appendChild(h('span', null, 'muted'));
@@ -2887,16 +2893,23 @@ function onSegPointer(ev, el, c) {
     ev.preventDefault(); ev.stopPropagation(); try { el.setPointerCapture(ev.pointerId); } catch {}
     const which = hnd.dataset.h, d = srcDur(c), sp = c.speed || 1; const lbl = el.querySelector('.hlbl'); const photo = isPhoto(c);
     const st = { in: c.in != null ? c.in : 0, out: c.out != null ? c.out : (photo ? Math.min(d, (c.in || 0) + PHOTO_DEFAULT) : d), x: ev.clientX }; snapshot(); player.pause(); lbl.classList.add('on');
-    let lastF = -1;
+    let lastF = -1; const L0 = parseFloat(el.style.left) || 0, W0 = parseFloat(el.style.width) || 0;
     const move = (e) => {
       const dx = (e.clientX - st.x) / P * sp;
       if (which === 'in') c.in = clamp(st.in + dx, 0, st.out - 0.1); else c.out = clamp(st.out + dx, st.in + 0.1, d);
       if (c.in <= 0.001) c.in = null; if (!photo && c.out >= d - 0.001) c.out = null;
       lbl.textContent = photo ? `Show for ${clipDur(c).toFixed(1)} s` : (which === 'in' ? `In ${fmt(c.in || 0)}` : `Out ${fmt(c.out != null ? c.out : d)}`);
-      layoutTiles(); const s2 = sg(); if (s2) player.seek(which === 'in' ? s2.start + 0.001 : s2.start + s2.dur - 0.03);
+      // only this tile changes while dragging: the dragged edge stays under the finger
+      const dIn = ((c.in || 0) - st.in) / sp * P, dOut = ((c.out != null ? c.out : d) - st.out) / sp * P;
+      let edge;
+      if (which === 'in') { el.style.left = (L0 + dIn).toFixed(1) + 'px'; el.style.width = Math.max(14, W0 - dIn).toFixed(1) + 'px'; edge = L0 + dIn; }
+      else { el.style.width = Math.max(14, W0 + dOut).toFixed(1) + 'px'; edge = L0 + W0 + dOut; }
+      stripOffset(el, c, 76);
+      computeSegs(); const s2 = sg(); if (s2) player.seek(which === 'in' ? s2.start + 0.001 : s2.start + s2.dur - 0.03);
+      $('ph').style.left = edge.toFixed(1) + 'px';   // the red line sits on the handle while it moves
       const fr = Math.round((which === 'in' ? (c.in || 0) : (c.out != null ? c.out : d)) * 30); if (fr !== lastF) { lastF = fr; try { navigator.vibrate && navigator.vibrate(1); } catch {} }
     };
-    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); lbl.classList.remove('on'); commit(); };
+    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); lbl.classList.remove('on'); commit(); const s3 = sg(); if (s3) player.seek(which === 'in' ? s3.start + 0.001 : Math.max(s3.start, s3.start + s3.dur - 1)); };
     el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
     return;
   }
@@ -3002,7 +3015,7 @@ function renderClipPane() {
     pane.appendChild(h('button', { class: 'bbtn quiet red', style: 'background:var(--surface)', onclick: removeSel }, 'Remove from movie'));
     return;
   }
-  pane.appendChild(h('div', { class: 'btnrow' }, h('button', { class: 'tool', id: 'split', onclick: splitAtPlayhead }, 'Split'), h('button', { class: 'tool', id: 'movel', onclick: () => moveSel(-1) }, 'Earlier'), h('button', { class: 'tool', id: 'mover', onclick: () => moveSel(1) }, 'Later'), h('button', { class: 'tool red', id: 'remove', onclick: removeSel }, 'Remove')));
+  pane.appendChild(h('div', { class: 'btnrow' }, h('button', { class: 'tool', id: 'movel', onclick: () => moveSel(-1) }, 'Earlier'), h('button', { class: 'tool', id: 'mover', onclick: () => moveSel(1) }, 'Later'), h('button', { class: 'tool red', id: 'remove', onclick: removeSel }, 'Remove')));
   if (i === 0) pane.querySelector('#movel').disabled = true;
   if (i === n - 1) pane.querySelector('#mover').disabled = true;
   pane.appendChild(h('div', { style: 'height:18px' }));
@@ -3019,7 +3032,7 @@ function renderClipPane() {
     pane.appendChild(grp('Show for', `${secs} second${secs === 1 ? '' : 's'}`, segc([2, 3, 4, 6, 8].map(x => [x, `${x} s`]), secs, v => { snapshot(); c.in = null; c.out = v; commit(); })));
   } else {
     const a = c.in || 0, b = c.out != null ? c.out : d;
-    const trim = grp('Length', null, h('div', { class: 'clipinfo' }, (c.in != null || c.out != null) ? `Uses ${fmt(a)} – ${fmt(b)} of the ${fmt(d)} clip. ` : `The whole ${fmt(d)} clip. `, 'Drag the blue ends of the clip in the timeline to keep just the good part. Split cuts it at the red line; hold a clip and drag it to move it.'));
+    const trim = grp('Length', null, h('div', { class: 'clipinfo' }, (c.in != null || c.out != null) ? `Uses ${fmt(a)} – ${fmt(b)} of the ${fmt(d)} clip. ` : `The whole ${fmt(d)} clip. `, 'Drag the blue ends of the clip in the timeline to keep just the good part. Hold a clip and drag it to move it.'));
     if (c.in != null || c.out != null) trim.appendChild(h('button', { class: 'lnk', style: 'font-size:15px;margin-left:4px', onclick: () => { snapshot(); c.in = null; c.out = null; commit(); } }, 'Use the whole clip'));
     pane.appendChild(trim);
   }
@@ -3211,15 +3224,23 @@ async function saveExport(ex, btn) {
   if (btn) btn.disabled = true; savingOverlay(true);
   try {
     const dl = (window.claude && typeof window.claude.use === 'function') ? await Promise.race([window.claude.use('downloads'), new Promise(r => setTimeout(() => r(null), 3000))]).catch(() => null) : null;
-    if (dl) { await dl.save({ filename: ex.fname, data: file }); say('Choose “Save Video” in the sheet that opens', 4000); }
-    else if (SUPPORT.share && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: ex.fname }); say('Handed to Photos (if you chose “Save Video”)', 4000); }
-    else { const a = h('a', { href: URL.createObjectURL(file), download: ex.fname }); document.body.appendChild(a); a.click(); a.remove(); say('Downloaded'); }
-    ex.saved = true; if (btn) { btn.textContent = 'Saved to Photos'; btn.classList.add('done'); }
+    // the share sheet only closes after iOS has finished the chosen action (Save Video writes to Photos first)
+    let label;
+    if (dl) { await dl.save({ filename: ex.fname, data: file }); label = 'Saved'; }
+    else if (SUPPORT.share && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: ex.fname }); label = 'Saved to Photos'; }
+    else { const a = h('a', { href: URL.createObjectURL(file), download: ex.fname }); document.body.appendChild(a); a.click(); a.remove(); label = 'Downloaded'; }
+    savingOverlay(false); confirmSaved(label, label === 'Saved to Photos' ? 'You’ll find it in the Photos app, under Recents.' : '');
+    ex.saved = true; if (btn) { btn.textContent = label; btn.classList.add('done'); }
     try { const rec = await DB.get('exports', ex.id); if (rec) { rec.saved = true; await DB.put('exports', rec); } } catch {}
     if (S.memExports) { const m = S.memExports.find(x => x.id === ex.id); if (m) m.saved = true; }
     if (btn && btn.closest('.xrow')) { btn.disabled = true; return; }
-  } catch (e) { if (!/abort/i.test(String(e))) say('Could not save: ' + ((e && e.message) || e), 4000); else say('Cancelled'); }
+  } catch (e) { if (!/abort/i.test(String(e))) say('Could not save: ' + ((e && e.message) || e), 4000); else say('Not saved — you cancelled', 3000); }
   finally { savingOverlay(false); if (btn && !btn.classList.contains('done')) btn.disabled = false; }
+}
+// a clear confirmation card after a successful save (it goes away on its own or with a tap)
+function confirmSaved(title, sub) {
+  const o = h('div', { class: 'savedok', onclick: () => o.remove() }, h('div', { class: 'box' }, h('i', { html: '<svg width="30" height="30" viewBox="0 0 30 30"><path d="m8 15.5 5 5 10-11" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' }), h('b', null, title), sub ? h('span', null, sub) : null));
+  document.body.appendChild(o); setTimeout(() => o.remove(), 2600);
 }
 async function deleteExport(ex) {
   try { await DB.del('exports', ex.id); } catch {}
