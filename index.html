@@ -311,7 +311,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Clipper</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v4.0</span>
+  <span id="ver" title="version · build time">v4.1</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -2295,7 +2295,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v4.0 · Oct 21 10:51';
+const VERSION = 'v4.1 · Oct 21 16:31';
 const ANDROID = /Android/i.test(navigator.userAgent), SAVE_WORD = ANDROID ? 'Save video' : 'Save to Photos', SAVED_WORD = ANDROID ? 'Saved' : 'Saved to Photos';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
@@ -3444,8 +3444,13 @@ class FrameSource {
     this.atrack = (this.info.audioTracks || [])[0] || null;
     const codec = v.codec.startsWith('avc1') || v.codec.startsWith('hvc1') || v.codec.startsWith('hev1') || v.codec.startsWith('av01') || v.codec.startsWith('vp09') ? v.codec : v.codec;
     const cfg = { codec, codedWidth: v.video.width, codedHeight: v.video.height, description: boxDescription(mp4, v.id), hardwareAcceleration: 'prefer-hardware', optimizeForLatency: false };
-    try { const sup = await VideoDecoder.isConfigSupported(cfg); if (!sup.supported) throw new Error('codec not supported: ' + codec); } catch (e) { if (/not supported/.test(e.message)) throw e; }
-    this.dec = new VideoDecoder({ output: (f) => { if (f.timestamp < this.in * 1e6 - 1) { f.close(); } else { this.frames.push(f); } this.pending--; this.wake(); }, error: (e) => { this.err = e; this.done = true; this.wake(); } });
+    try {
+      let sup = await VideoDecoder.isConfigSupported(cfg);
+      if (!sup.supported) { cfg.hardwareAcceleration = 'no-preference'; sup = await VideoDecoder.isConfigSupported(cfg); }
+      if (!sup.supported) throw new Error('codec not supported: ' + codec);
+    } catch (e) { if (/not supported/.test(e.message)) throw e; }
+    this.outCount = 0; DBG.vdec = codec + ' ' + cfg.hardwareAcceleration;
+    this.dec = new VideoDecoder({ output: (f) => { this.outCount++;  if (f.timestamp < this.in * 1e6 - 1) { f.close(); } else { this.frames.push(f); } this.pending--; this.wake(); }, error: (e) => { this.err = e; this.done = true; this.wake(); } });
     this.dec.configure(cfg);
     // audio (AAC only — PCM/other tracks are skipped)
     if (this.atrack && this.onAudio && SUPPORT.audiodec && /mp4a/.test(this.atrack.codec)) {
@@ -3483,9 +3488,13 @@ class FrameSource {
       const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await this.file.slice(this.pos, end).arrayBuffer(); buf.fileStart = this.pos;
       const next = this.mp4.appendBuffer(buf); this.pos = (typeof next === 'number' && next > this.pos) ? next : end;
     }
-    if ((this.stopFeeding || this.pos >= this.file.size) && !this.flushed) { this.flushed = true; try { this.mp4.flush(); } catch {} try { await this.dec.flush(); } catch {} if (this.adec) { try { await this.adec.flush(); } catch {} } this.done = true; this.wake(); }
+    if ((this.stopFeeding || this.pos >= this.file.size) && !this.flushed) { this.flushed = true; try { this.mp4.flush(); } catch {}
+      // not awaited: a decoder that never answers must not freeze the export — next() keeps watching and reports it
+      (async () => { try { await this.dec.flush(); } catch {} if (this.adec) { try { await this.adec.flush(); } catch {} } this.done = true; this.wake(); })();
+    }
   }
   async next() {   // next VideoFrame in presentation order, or null at end
+    const c0 = this.outCount, t0 = performance.now();
     while (true) {
       DBG.src = { frames: this.frames.length, pending: this.pending, done: this.done, pos: this.pos, size: this.file.size, stop: this.stopFeeding, dec: this.dec && this.dec.state, dq: this.dec && this.dec.decodeQueueSize, err: this.err && String(this.err) };
       if (this.frames.length) return this.frames.shift();
@@ -3494,7 +3503,9 @@ class FrameSource {
       await this.pump();
       if (this.frames.length) return this.frames.shift();
       if (this.done) return null;
-      if (this.pending > 0) await new Promise(r => { this.waiters.push(r); setTimeout(r, 50); });
+      await new Promise(r => { this.waiters.push(r); setTimeout(r, 50); });
+      // the decoder took our data but returns no pictures (some phones' hardware decoders do this): say so instead of sitting at 0 %
+      if (this.pending > 0 && this.outCount === c0 && performance.now() - t0 > 25000) throw new Error('The video decoder on this phone is not returning pictures (' + DBG.vdec + ', ' + this.pending + ' waiting, queue ' + (this.dec && this.dec.decodeQueueSize) + '). Update Chrome, or use clips recorded in another video format (H.264 or HEVC).');
     }
   }
   close() { for (const f of this.frames) f.close(); this.frames = []; try { this.dec.close(); } catch {} try { if (this.adec) this.adec.close(); } catch {} }
