@@ -311,7 +311,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Clipper</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v4.1</span>
+  <span id="ver" title="version · build time">v4.2</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -2295,7 +2295,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v4.1 · Oct 21 16:31';
+const VERSION = 'v4.2 · Oct 21 18:00';
 const ANDROID = /Android/i.test(navigator.userAgent), SAVE_WORD = ANDROID ? 'Save video' : 'Save to Photos', SAVED_WORD = ANDROID ? 'Saved' : 'Saved to Photos';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
@@ -3433,7 +3433,7 @@ function matrixRotation(track) {
 }
 // Reads an MP4/MOV with mp4box in slices; yields decoded VideoFrames in presentation order from `inSec`.
 class FrameSource {
-  constructor(file, inSec, outSec, onAudio) { this.file = file; this.in = inSec; this.out = outSec; this.onAudio = onAudio; this.frames = []; this.done = false; this.err = null; this.pos = 0; this.eof = false; this.info = null; this.vtrack = null; this.atrack = null; this.rot = 0; this.pending = 0; this.flushed = false; this.waiters = []; this.adec = null; this.adone = false; }
+  constructor(file, inSec, outSec, onAudio) { this.file = file; this.in = inSec; this.out = outSec; this.onAudio = onAudio; this.frames = []; this.done = false; this.err = null; this.pos = 0; this.eof = false; this.info = null; this.vtrack = null; this.atrack = null; this.rot = 0; this.pending = 0; this.flushed = false; this.waiters = []; this.adec = null; this.adone = false; this.mode = 'webcodecs'; this.fps = 30; this.lastTs = null; this.vel = null; }
   async open() {
     const mp4 = MP4Box.createFile(); this.mp4 = mp4;
     const ready = new Promise((res, rej) => { mp4.onReady = res; mp4.onError = (e) => rej(new Error(String(e))); });
@@ -3450,7 +3450,7 @@ class FrameSource {
       if (!sup.supported) throw new Error('codec not supported: ' + codec);
     } catch (e) { if (/not supported/.test(e.message)) throw e; }
     this.outCount = 0; DBG.vdec = codec + ' ' + cfg.hardwareAcceleration;
-    this.dec = new VideoDecoder({ output: (f) => { this.outCount++;  if (f.timestamp < this.in * 1e6 - 1) { f.close(); } else { this.frames.push(f); } this.pending--; this.wake(); }, error: (e) => { this.err = e; this.done = true; this.wake(); } });
+    this.dec = new VideoDecoder({ output: (f) => { this.outCount++; this.lastTs = f.timestamp;  if (f.timestamp < this.in * 1e6 - 1) { f.close(); } else { this.frames.push(f); } this.pending--; this.wake(); }, error: (e) => { this.err = e; this.done = true; this.wake(); } });
     this.dec.configure(cfg);
     // audio (AAC only — PCM/other tracks are skipped)
     if (this.atrack && this.onAudio && SUPPORT.audiodec && /mp4a/.test(this.atrack.codec)) {
@@ -3493,7 +3493,33 @@ class FrameSource {
       (async () => { try { await this.dec.flush(); } catch {} if (this.adec) { try { await this.adec.flush(); } catch {} } this.done = true; this.wake(); })();
     }
   }
+  // Some Android phones' hardware decoders accept WebCodecs data but never return a picture. Then the clip is read
+  // through a hidden <video> element instead (the browser's own player uses the phone's normal decoder): the same
+  // frames, fetched by seeking, slower but it works. Sound keeps coming from the audio decoder.
+  async toVideoElement() {
+    DBG.vfallback = (DBG.vfallback || 0) + 1;
+    const resume = this.lastTs != null ? this.lastTs / 1e6 + 1 / this.fps : this.in;
+    try { this.dec.close(); } catch {}
+    for (const f of this.frames) { try { f.close(); } catch {} } this.frames = []; this.pending = 0; this.stopFeeding = true;
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0';
+    document.body.appendChild(v); this.vel = v; this.url = URL.createObjectURL(this.file); v.src = this.url;
+    await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('this browser could not open the clip either')); setTimeout(() => rej(new Error('this browser could not open the clip either (timed out)')), 12000); });
+    this.vt = Math.max(this.in, resume); this.rot = 0; this.mode = 'video';
+    if (this.adec) {   // the rest of the clip's sound still has to reach the audio decoder
+      try { while (this.pos < this.file.size) { const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await this.file.slice(this.pos, end).arrayBuffer(); buf.fileStart = this.pos; const next = this.mp4.appendBuffer(buf); this.pos = (typeof next === 'number' && next > this.pos) ? next : end; } this.mp4.flush(); } catch {}
+      await Promise.race([this.adec.flush().catch(() => {}), new Promise(r => setTimeout(r, 6000))]);
+    }
+  }
+  async nextFromElement() {
+    const v = this.vel; if (this.vt > this.out + 0.001 || this.vt >= v.duration) return null;
+    const t = this.vt; this.vt += 1 / this.fps;
+    v.currentTime = Math.min(t, Math.max(0, v.duration - 0.001));
+    await Promise.race([new Promise(r => v.addEventListener('seeked', r, { once: true })), new Promise(r => setTimeout(r, 4000))]);
+    if (v.readyState < 2) throw new Error('this browser could not read the clip at ' + t.toFixed(1) + ' s');
+    return new VideoFrame(v, { timestamp: Math.round(t * 1e6) });
+  }
   async next() {   // next VideoFrame in presentation order, or null at end
+    if (this.mode === 'video') return this.frames.length ? this.frames.shift() : this.nextFromElement();
     const c0 = this.outCount, t0 = performance.now();
     while (true) {
       DBG.src = { frames: this.frames.length, pending: this.pending, done: this.done, pos: this.pos, size: this.file.size, stop: this.stopFeeding, dec: this.dec && this.dec.state, dq: this.dec && this.dec.decodeQueueSize, err: this.err && String(this.err) };
@@ -3505,10 +3531,13 @@ class FrameSource {
       if (this.done) return null;
       await new Promise(r => { this.waiters.push(r); setTimeout(r, 50); });
       // the decoder took our data but returns no pictures (some phones' hardware decoders do this): say so instead of sitting at 0 %
+      if (this.pending > 0 && this.outCount === c0 && performance.now() - t0 > (c0 === 0 ? 6000 : 15000)) {
+        try { await this.toVideoElement(); return this.next(); } catch (e) { DBG.vfallbackErr = String(e && e.message || e); }
+      }
       if (this.pending > 0 && this.outCount === c0 && performance.now() - t0 > 25000) throw new Error('The video decoder on this phone is not returning pictures (' + DBG.vdec + ', ' + this.pending + ' waiting, queue ' + (this.dec && this.dec.decodeQueueSize) + '). Update Chrome, or use clips recorded in another video format (H.264 or HEVC).');
     }
   }
-  close() { for (const f of this.frames) f.close(); this.frames = []; try { this.dec.close(); } catch {} try { if (this.adec) this.adec.close(); } catch {} }
+  close() { for (const f of this.frames) f.close(); this.frames = []; try { this.dec.close(); } catch {} try { if (this.vel) { this.vel.removeAttribute('src'); this.vel.remove(); URL.revokeObjectURL(this.url); } } catch {} try { if (this.adec) this.adec.close(); } catch {} }
 }
 // draws a VideoFrame into W×H with the chosen fit, honoring container rotation
 function drawFit(ctx, W, H, frame, rot, fit, blurCache) {
@@ -3612,7 +3641,7 @@ async function renderMovie(onProgress) {
     const c = seg.clip, f = fileOf(c); const d = f.dur; c._in = c.in != null ? c.in : 0; c._out = c.out != null ? c.out : d;
     let sink = null; if (wantAudio && !c.mute && (c.volume == null || c.volume > 0.001)) sink = makeAudioSink(c, (chans, sr) => { audio[seg.uid] = { chans: chans.map(a => resampleTo48(a, sr, c.speed || 1)) }; });
     const src = new FrameSource(f.file, c._in, c._out, sink ? (ad) => sink.sink(ad) : null);
-    src._sink = sink; await src.open(); src.cur = null; sources[seg.uid] = src;
+    src._sink = sink; src.fps = F; await src.open(); src.cur = null; sources[seg.uid] = src;
     if (sink && !src.adec && f.file.size < 600 * 1024 * 1024) {   // no WebCodecs audio for this file (PCM, odd MOVs…) → let the browser's media stack decode it
       src._sink = null;
       try {
