@@ -220,17 +220,6 @@
   .hsec { display:flex; align-items:baseline; justify-content:space-between; padding:26px 20px 10px; }
   .hsec b { font-size:20px; font-weight:600; } .hsec span { font-size:14px; color:var(--muted); }
   .hlist { margin:0 16px; background:var(--surface); border-radius:14px; overflow:hidden; box-shadow:0 0 0 .5px rgba(0,0,0,.05); }
-  .mrow { position:relative; overflow:hidden; }
-  .mrow + .mrow::before { content:''; position:absolute; top:0; left:92px; right:0; height:.5px; background:var(--hair); z-index:2; }
-  .mrow .del { position:absolute; right:0; top:0; bottom:0; width:96px; background:var(--red); color:#fff; font-size:17px; font-weight:500; }
-  .mrow .mv { position:relative; z-index:1; background:var(--surface); display:flex; align-items:center; gap:12px; padding:10px 12px 10px 16px; min-height:84px; cursor:pointer; transition:transform .2s; touch-action:pan-y; }
-  .mrow .th { width:64px; height:64px; border-radius:10px; background:#D6D6DC center/cover; flex:0 0 auto; }
-  .mrow .ct { flex:1; min-width:0; }
-  .mrow .t { font-size:17px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .mrow .m { font-size:14px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; }
-  .mrow .edx { display:none; width:24px; height:24px; border-radius:50%; background:var(--red); color:#fff; flex:0 0 auto; align-items:center; justify-content:center; margin-right:-2px; }
-  #home.editing .mrow .edx { display:flex; }
-  #home.editing .mrow .chev { display:none; }
   .xrow { padding:12px 16px 14px; position:relative; }
   .xrow + .xrow::before { content:''; position:absolute; top:0; left:16px; right:0; height:.5px; background:var(--hair); }
   .xrow .top { display:flex; align-items:center; gap:12px; }
@@ -322,7 +311,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Clipper</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v3.5</span>
+  <span id="ver" title="version · build time">v4.0</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -363,7 +352,7 @@
 </div>
 <div class="mbg" id="exportbg"><div class="modal" id="exportmodal"></div></div>
 <div class="mbg" id="helpbg"><div class="modal" id="helpmodal"></div></div>
-<div id="saving"><div class="box"><div class="spin"></div><b>Saving to Photos…</b><span>Stay on this screen until it finishes. Choose “Save Video” if the sheet asks.</span></div></div>
+<div id="saving"><div class="box"><div class="spin"></div><b id="saving-t">Saving to Photos…</b><span id="saving-s">Stay on this screen until it finishes. Choose “Save Video” if the sheet asks.</span></div></div>
 <div id="toast"></div>
 <audio id="music" preload="auto" style="display:none"></audio>
 
@@ -2300,13 +2289,14 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = (s) => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), sec = s % 60; return `${m}:${sec.toFixed(1).padStart(4, '0')}`; };
 const fmtL = (s) => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
 const dateStr = (ms) => { try { return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch { return ''; } };
-const savingOverlay = (on) => { $('saving').classList.toggle('on', !!on); };
+const savingOverlay = (on) => { if (on && ANDROID) { $('saving-t').textContent = 'Saving…'; $('saving-s').textContent = 'Stay on this screen. Pick Photos, Drive or Files in the share sheet — or it downloads.'; } $('saving').classList.toggle('on', !!on); };
 const status = (m) => { const el = $('status'); if (!el) return; el.textContent = m || ''; el.classList.toggle('on', !!m); };
 let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v3.5 · Oct 11 10:43';
+const VERSION = 'v4.0 · Oct 21 10:51';
+const ANDROID = /Android/i.test(navigator.userAgent), SAVE_WORD = ANDROID ? 'Save video' : 'Save to Photos', SAVED_WORD = ANDROID ? 'Saved' : 'Saved to Photos';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
 const yieldNow = (() => { const q = []; let ch = null; return () => new Promise(r => { if (typeof MessageChannel === 'undefined') return setTimeout(r, 0); if (!ch) { ch = new MessageChannel(); ch.port1.onmessage = () => { const f = q.shift(); if (f) f(); }; } q.push(r); ch.port2.postMessage(0); }); })();
@@ -3212,7 +3202,7 @@ function renderMoviePane() {
   pane.insertBefore(mg, pane.children[1]);   // music first, right under Saved work
   pane.appendChild(grp('About', null, list(h('div', { class: 'lrow tap', onclick: () => openHelp() }, h('span', { class: 'k' }, 'How Clipper works'), ic('chev')), h('div', { class: 'lrow tap', onclick: () => checkForUpdate(false, true) }, h('span', { class: 'k' }, 'Check for update'), ic('chev')))));
   pane.appendChild(h('div', { class: 'ver' }, `Clipper ${VERSION}`));
-  pane.appendChild(h('div', { class: 'ver', style: 'margin-top:4px;font-size:12px' }, [SUPPORT.webcodecs ? 'video engine ready' : 'no WebCodecs — update iOS', SUPPORT.audioenc ? 'sound export ready' : 'sound export unavailable on this iOS', SUPPORT.opfs ? 'exports kept on this phone' : 'exports kept until you leave'].join(' · ')));
+  pane.appendChild(h('div', { class: 'ver', style: 'margin-top:4px;font-size:12px' }, [SUPPORT.webcodecs ? 'video engine ready' : (ANDROID ? 'no WebCodecs — use Chrome' : 'no WebCodecs — update iOS'), SUPPORT.audioenc ? 'sound export ready' : 'sound export unavailable on this browser', SUPPORT.opfs ? 'exports kept on this phone' : 'exports kept until you leave'].join(' · ')));
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
@@ -3245,7 +3235,7 @@ function renderHome() {
       const dd = ex ? dayStr(ex.date) : ''; bits.push(ex ? `exported ${/^(Today|Yesterday)$/.test(dd) ? dd.toLowerCase() : dd}` : 'not exported yet');
       const top = h('div', { class: 'top', style: p ? 'cursor:pointer' : '', onclick: p ? () => openProject(p.id) : null }, thumbEl((ex && ex.thumb) || (p && p.thumb), 'th', 'width:64px;height:64px;border-radius:10px'), h('div', { class: 'ct' }, h('div', { class: 't' }, name), h('div', { class: 'm' }, bits.join(' · '))), p ? ic('chev') : null);
       const acts = h('div', { class: 'acts' });
-      if (ex) { const save = h('button', { class: 'bbtn tint' + (ex.saved ? ' done' : ''), onclick: (e) => saveExport(ex, e.currentTarget) }, ex.saved ? 'Saved to Photos' : 'Save to Photos'); if (ex.saved) save.disabled = true; acts.appendChild(save); }
+      if (ex) { const save = h('button', { class: 'bbtn tint' + (ex.saved ? ' done' : ''), onclick: (e) => saveExport(ex, e.currentTarget) }, ex.saved ? SAVED_WORD : SAVE_WORD); if (ex.saved) save.disabled = true; acts.appendChild(save); }
       else acts.appendChild(h('button', { class: 'bbtn tint', onclick: () => openProject(p.id) }, 'Open to edit'));
       acts.appendChild(h('button', { class: 'bbtn quiet red', onclick: () => p ? deleteProject(p) : deleteExport(ex) }, 'Delete'));
       lst.appendChild(h('div', { class: 'xrow' }, top, acts));
@@ -3330,13 +3320,17 @@ async function saveExport(ex, btn) {
   if (btn) btn.disabled = true; savingOverlay(true);
   try {
     const dl = (window.claude && typeof window.claude.use === 'function') ? await Promise.race([window.claude.use('downloads'), new Promise(r => setTimeout(() => r(null), 3000))]).catch(() => null) : null;
-    // the share sheet only closes after iOS has finished the chosen action (Save Video writes to Photos first)
+    // the share sheet only closes after the OS has finished the chosen action (iPhone: Save Video writes to Photos first)
     let label;
+    const download = () => { const url = URL.createObjectURL(file); const a = h('a', { href: url, download: ex.fname }); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 120000); return 'Downloaded'; };
     if (dl) { await dl.save({ filename: ex.fname, data: file }); label = 'Saved'; }
-    else if (SUPPORT.share && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: ex.fname }); label = 'Saved to Photos'; }
-    else { const a = h('a', { href: URL.createObjectURL(file), download: ex.fname }); document.body.appendChild(a); a.click(); a.remove(); label = 'Downloaded'; }
-    savingOverlay(false); confirmSaved(label, label === 'Saved to Photos' ? 'You’ll find it in the Photos app, under Recents.' : '');
-    ex.saved = true; if (btn) { btn.textContent = label; btn.classList.add('done'); }
+    else if (SUPPORT.share && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: ex.fname }); label = SAVED_WORD; }
+      catch (e) { if (/abort/i.test(String(e && e.name || e))) throw e; if (!ANDROID) throw e; label = download(); }   // Android: share refused (big file / lost tap) → plain download
+    }
+    else label = download();
+    savingOverlay(false); confirmSaved(label, label === 'Saved to Photos' ? 'You’ll find it in the Photos app, under Recents.' : label === 'Downloaded' ? 'Look in Files → Downloads, or Google Photos / Gallery under Downloads.' : '');
+    ex.saved = true; if (btn) { btn.textContent = label === 'Downloaded' ? label : SAVED_WORD; btn.classList.add('done'); }
     try { const rec = await DB.get('exports', ex.id); if (rec) { rec.saved = true; await DB.put('exports', rec); } } catch {}
     if (S.memExports) { const m = S.memExports.find(x => x.id === ex.id); if (m) m.saved = true; }
     if (btn && btn.closest('.xrow')) { btn.disabled = true; return; }
@@ -3530,25 +3524,36 @@ function thumbOf(cv, w) { try { const tw = w || 160, th = Math.max(8, Math.round
 
 // renders the movie → { blob (File on disk or Blob in memory), id, opfs, thumb }
 async function renderMovie(onProgress) {
-  if (!SUPPORT.webcodecs) throw new Error('This browser has no hardware video engine (WebCodecs). On iPhone, use Safari on iOS 16.4 or newer.');
+  if (!SUPPORT.webcodecs) throw new Error('This browser has no video engine (WebCodecs). On Android use an up-to-date Chrome; on iPhone use Safari on iOS 16.4 or newer.');
   const miss = missingClips().length; if (miss) throw new Error(`${miss} clip${miss > 1 ? 's are' : ' is'} not loaded — pick them again from Photos (or remove them) before exporting.`);
   const p = S.proj; computeSegs(); const segs = S.segs; if (!segs.length) throw new Error('Nothing to render');
   const [W, H] = outSize(); const F = +p.out.fps || 30; const total = S.total; const N = Math.max(1, Math.round(total * F));
   const bitrate = bitrateFor(p.out);
-  const codec = H * W > 1280 * 720 ? (F > 30 ? 'avc1.64002A' : 'avc1.640028') : 'avc1.64001F';
+  const big = H * W > 1280 * 720, hi = F > 30;
   // latencyMode 'realtime': Safari's encoder never emits a frame in 'quality' mode
   // (queue grows until flush hangs). Realtime emits per frame on every engine; bitrate carries quality.
-  const vcfg = { codec, width: W, height: H, bitrate, framerate: F, hardwareAcceleration: 'prefer-hardware', latencyMode: 'realtime', avc: { format: 'avc' } };
-  let sup = await VideoEncoder.isConfigSupported(vcfg).catch(() => ({ supported: false }));
-  if (!sup.supported) { vcfg.hardwareAcceleration = 'no-preference'; sup = await VideoEncoder.isConfigSupported(vcfg).catch(() => ({ supported: false })); }
-  if (!sup.supported) throw new Error(`H.264 ${W}×${H} encoding is not supported on this device`);
+  // Android hardware encoders are pickier (profile/level, hardware only): walk down High → Main → Baseline, then VP9.
+  const tries = [];
+  for (const hw of ['prefer-hardware', 'no-preference']) for (const c of (big ? (hi ? ['avc1.64002A', 'avc1.4D002A', 'avc1.42002A'] : ['avc1.640028', 'avc1.4D0028', 'avc1.420028']) : ['avc1.64001F', 'avc1.4D001F', 'avc1.42001F'])) tries.push({ codec: c, hw, mux: 'avc' });
+  if (ANDROID) tries.push({ codec: 'vp09.00.40.08', hw: 'no-preference', mux: 'vp9' });
+  let vcfg = null, vmux = 'avc';
+  for (const t of tries) {
+    const cfg = { codec: t.codec, width: W, height: H, bitrate, framerate: F, hardwareAcceleration: t.hw, latencyMode: 'realtime' }; if (t.mux === 'avc') cfg.avc = { format: 'avc' };
+    const sup = await VideoEncoder.isConfigSupported(cfg).catch(() => ({ supported: false }));
+    if (sup.supported) { vcfg = cfg; vmux = t.mux; break; }
+  }
+  if (!vcfg) throw new Error(`Video encoding at ${W}×${H} is not supported on this device — try 720p in the export options.`);
+  DBG.vcodec = vcfg.codec + ' ' + vcfg.hardwareAcceleration;
   DBG.aData = 0; DBG.aSamples = 0; DBG.aFallback = 0; DBG.music = null; DBG.musicErr = null;
-  const wantAudio = SUPPORT.audioenc && SUPPORT.audiodec;
+  let wantAudio = SUPPORT.audioenc && SUPPORT.audiodec;
+  let audioCodec = 'aac';   // Android Chrome may not ship an AAC encoder → Opus in MP4 (plays in Photos/Gallery/Chrome)
+  if (wantAudio) { const okAac = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 }).then(r => r.supported).catch(() => false); if (!okAac) { const okOpus = await AudioEncoder.isConfigSupported({ codec: 'opus', sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 }).then(r => r.supported).catch(() => false); if (okOpus) audioCodec = 'opus'; } }
+  DBG.acodec = audioCodec;
   // output goes to disk as we go (OPFS) under its own name, so it stays in the Exports list; memory only as a fallback for odd browsers
   const exId = uid(); const sinkName = `export_${exId}.mp4`;
   const sink = await DiskSink.create(sinkName); DBG.sink = sink ? 'disk' : 'memory'; S.activeSink = sink;
   const target = sink ? new Mp4Muxer.StreamTarget({ onData: (data, position) => { sink.write(position, data); }, chunked: true, chunkSize: 2 * 1024 * 1024 }) : new Mp4Muxer.ArrayBufferTarget();
-  const muxer = new Mp4Muxer.Muxer({ target, video: { codec: 'avc', width: W, height: H, frameRate: F }, audio: wantAudio ? { codec: 'aac', numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: sink ? false : 'in-memory', firstTimestampBehavior: 'offset' });
+  const muxer = new Mp4Muxer.Muxer({ target, video: { codec: vmux, width: W, height: H, frameRate: F }, audio: wantAudio ? { codec: audioCodec, numberOfChannels: 2, sampleRate: 48000 } : undefined, fastStart: sink ? false : 'in-memory', firstTimestampBehavior: 'offset' });
   S.cancelRender = false;
   let encErr = null;
   DBG.vChunks = 0; DBG.vMuxErr = null;
@@ -3559,7 +3564,7 @@ async function renderMovie(onProgress) {
   let aenc = null, aerr = null; DBG.aChunks = 0; DBG.aMuxErr = null; DBG.aEncErr = null;
   const AAC_LC_48K_STEREO = new Uint8Array([0x11, 0x90]);
   if (wantAudio) {
-    const acfg0 = { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 };
+    const acfg0 = audioCodec === 'opus' ? { codec: 'opus', sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 } : { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 };
     try { const sup = await AudioEncoder.isConfigSupported(acfg0); DBG.aCfgSupported = sup.supported; if (!sup.supported) throw new Error('AAC audio encoding is not supported on this device'); } catch (e) { DBG.aEncErr = String(e && e.message || e); }
     let aMetaSeen = false, aFirstSeen = false;
     aenc = new AudioEncoder({ output: (chunk, meta) => {
@@ -3569,12 +3574,14 @@ async function renderMovie(onProgress) {
           aMetaSeen = true;
           const d = meta && meta.decoderConfig; const raw = d && d.description ? new Uint8Array(d.description.buffer ? d.description.buffer.slice(d.description.byteOffset || 0, (d.description.byteOffset || 0) + d.description.byteLength) : d.description) : null;
           DBG.aMeta = d ? { codec: d.codec, sr: d.sampleRate, ch: d.numberOfChannels, descLen: raw ? raw.length : 0 } : null;
-          const asc = audioSpecificConfig(raw) || AAC_LC_48K_STEREO; DBG.aAsc = Array.from(asc).map(x => x.toString(16).padStart(2, '0')).join(' ');
-          m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: asc } };
+          if (audioCodec === 'aac') {
+            const asc = audioSpecificConfig(raw) || AAC_LC_48K_STEREO; DBG.aAsc = Array.from(asc).map(x => x.toString(16).padStart(2, '0')).join(' ');
+            m = { decoderConfig: { codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, description: asc } };
+          }
         }
         let c = chunk; const buf = new Uint8Array(chunk.byteLength); chunk.copyTo(buf);
         if (!aFirstSeen) { aFirstSeen = true; DBG.aFirst = Array.from(buf.slice(0, 4)); }
-        if (buf.length > 9 && buf[0] === 0xff && (buf[1] & 0xf6) === 0xf0) { const hdr = (buf[1] & 1) ? 7 : 9; c = new EncodedAudioChunk({ type: chunk.type, timestamp: chunk.timestamp, duration: chunk.duration, data: buf.subarray(hdr) }); DBG.aAdts = (DBG.aAdts || 0) + 1; }
+        if (audioCodec === 'aac' && buf.length > 9 && buf[0] === 0xff && (buf[1] & 0xf6) === 0xf0) { const hdr = (buf[1] & 1) ? 7 : 9; c = new EncodedAudioChunk({ type: chunk.type, timestamp: chunk.timestamp, duration: chunk.duration, data: buf.subarray(hdr) }); DBG.aAdts = (DBG.aAdts || 0) + 1; }
         muxer.addAudioChunk(c, m); DBG.aChunks++;
       } catch (e) { if (!DBG.aMuxErr) DBG.aMuxErr = String(e && e.message || e); }
     }, error: (e) => { aerr = e; DBG.aEncErr = String(e && e.message || e); } });
@@ -3825,7 +3832,7 @@ function renderExport(stage, data) {
   if (stage === 'summary' || stage === 'error') {
     if (stage === 'error') { body.appendChild(still()); body.appendChild(h('div', { class: 'h24' }, 'The movie couldn’t be made')); body.appendChild(h('div', { class: 'err' }, data)); }
     body.appendChild(h('div', { class: 'mfoot' }, h('button', { class: 'bbtn', id: 'exp-go', style: 'min-height:56px', onclick: runExport }, stage === 'error' ? 'Try again' : 'Make movie'),
-      h('div', { class: 'mnote' }, 'Keep Clipper open until it’s done.' + (SUPPORT.audioenc ? '' : ' This iOS can’t make sound in the browser, so the movie will be silent.'))));
+      h('div', { class: 'mnote' }, 'Keep Clipper open until it’s done.' + (SUPPORT.audioenc ? '' : ' This browser can’t make sound, so the movie will be silent.'))));
     return;
   }
   if (stage === 'making') {
@@ -3846,9 +3853,9 @@ function renderExport(stage, data) {
     body.appendChild(h('div', { class: 'h28' }, 'Your movie is ready'));
     body.appendChild(h('div', { class: 'hero-sub' }, `${p.name} · ${fmtL(ex.dur)} · ${mbStr(ex.size / 1e6)} MB`));
     const mn = p.music && DBG.music ? `with “${p.music.name.replace(/\.[^.]+$/, '')}” ${p.music.mode === 'replace' ? 'instead of the clips’ sound' : 'underneath'} at ${Math.round((p.music.volume || 0.3) * 100)}%` : '';
-    const sound = !SUPPORT.audioenc ? 'Sound: none — this iOS can’t make sound in the browser.' : `Sound: ${p.music && p.music.mode === 'replace' && DBG.music ? 'music only, ' + mn.replace(/^with /, '') : 'your clips’ audio' + (mn ? ' ' + mn : '')}.`;
+    const sound = !SUPPORT.audioenc ? 'Sound: none — this browser can’t make sound.' : `Sound: ${p.music && p.music.mode === 'replace' && DBG.music ? 'music only, ' + mn.replace(/^with /, '') : 'your clips’ audio' + (mn ? ' ' + mn : '')}.`;
     body.appendChild(h('div', { class: 'mfoot' },
-      h('button', { class: 'bbtn', style: 'min-height:56px', onclick: async (ev) => { await saveExport(ex, ev.currentTarget); } }, 'Save to Photos'),
+      h('button', { class: 'bbtn', style: 'min-height:56px', onclick: async (ev) => { await saveExport(ex, ev.currentTarget); } }, SAVE_WORD),
       h('div', { style: 'height:10px' }), h('button', { class: 'bbtn quiet', style: 'min-height:52px', onclick: closeExport }, 'Done'),
       h('div', { class: 'mnote' }, sound + ' It’s on the home screen under Your movies; export again any time and the new video replaces this one.'),
       p.music && DBG.musicErr ? h('div', { class: 'err' }, 'The movie was made without music: ' + DBG.musicErr) : null,
@@ -3878,7 +3885,7 @@ async function runExport() {
     });
     const blob = res.blob; lastBlob = blob;
     if (total > 2) LS.set('clipper.rspeed', String(clamp(((Date.now() - t0) / 1000) / total * (1920 * 1080) / (W0 * H0), 0.05, 20)));   // learn the real speed for next time's estimate
-    const snd = !SUPPORT.audioenc ? 'none (this iOS cannot encode sound in the browser)' : `clips ${DBG.aData || DBG.aFallback ? 'ok' : '— (no clip sound decoded)'} · music ${S.proj.music ? (DBG.music ? 'ok ' + S.proj.music.mode : 'failed ' + (DBG.musicErr || 'not loaded — choose the track again')) : 'none'} · written ${DBG.aChunks || 0} sound chunks${DBG.aMuxErr ? ' · writer error: ' + DBG.aMuxErr : ''}${DBG.aEncErr ? ' · encoder error: ' + DBG.aEncErr : ''}`;
+    const snd = !SUPPORT.audioenc ? 'none (this browser cannot encode sound)' : `clips ${DBG.aData || DBG.aFallback ? 'ok' : '— (no clip sound decoded)'} · music ${S.proj.music ? (DBG.music ? 'ok ' + S.proj.music.mode : 'failed ' + (DBG.musicErr || 'not loaded — choose the track again')) : 'none'} · written ${DBG.aChunks || 0} sound chunks${DBG.aMuxErr ? ' · writer error: ' + DBG.aMuxErr : ''}${DBG.aEncErr ? ' · encoder error: ' + DBG.aEncErr : ''}`;
     const report = `Clipper ${VERSION}\n${navigator.userAgent}\nsupport ${JSON.stringify(SUPPORT)}\nsound: ${snd}\nmade in ${Math.round((Date.now() - t0) / 1000)} s\n${JSON.stringify(DBG)}`;
     const fname = (S.proj.name || 'movie').replace(/[^\w\- ]+/g, '_') + '.mp4';
     const ex = { id: res.id, pid: S.proj.id, fname, size: blob.size, date: Date.now(), dur: total, W: W0, H: H0, thumb: res.thumb, opfs: res.opfs, _file: new File([blob], fname, { type: 'video/mp4' }) };
@@ -3922,7 +3929,7 @@ function init() {
   window.addEventListener('resize', () => { if (S.view === 'home') return; layoutStage(); renderTimeline(); drawOverlay(S.T); });
   showHome(); tidyStorage().then(() => loadLists()).then(() => { if (S.view === 'home') renderHome(); }).catch(() => {});
   if (!LS.get('clipper.seen')) setTimeout(() => openHelp(true), 400);
-  if (!SUPPORT.webcodecs) say('This browser cannot render video. On iPhone use Safari (iOS 16.4+).', 8000);
+  if (!SUPPORT.webcodecs) say('This browser cannot render video. On Android use Chrome; on iPhone use Safari (iOS 16.4+).', 8000);
 }
 init();
 window.__phone = { DBG, S, DB, addFiles, matchFiles, loadPhoto, checkMusic, FrameSource, audioSpecificConfig, decodeMp3WebCodecs, stripId3, renderMovie, computeSegs, drawText, drawCard, drawPhoto, kenBurns, outSize, estimate, SUPPORT, player, splitAtPlayhead, trimAtPlayhead, addCaption, captionsAt, liveSegs, removeSel, undo, redo, showHome, showEditor, newMovie, openProject, loadLists, rememberExport, saveExport, openExport, runExport, openHelp, setZoom, get lastBlob() { return lastBlob; } };
