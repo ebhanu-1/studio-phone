@@ -311,7 +311,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Clipper</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v4.2</span>
+  <span id="ver" title="version · build time">v4.3</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -2295,7 +2295,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v4.2 · Oct 21 18:00';
+const VERSION = 'v4.3 · Oct 31 09:05';
 const ANDROID = /Android/i.test(navigator.userAgent), SAVE_WORD = ANDROID ? 'Save video' : 'Save to Photos', SAVED_WORD = ANDROID ? 'Saved' : 'Saved to Photos';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
@@ -2516,7 +2516,7 @@ const KEEP = {
   clip: (pid, fid) => `clip_${pid}_${fid}`, music: (pid) => `music_${pid}`,
   async copy(file, name, onProg) {
     const sink = await DiskSink.create(name); if (!sink) throw new Error('This browser can’t keep clips on the phone');
-    try { let at = 0; while (at < file.size) { const end = Math.min(file.size, at + CHUNK); const u8 = new Uint8Array(await file.slice(at, end).arrayBuffer()); sink.write(at, u8); at = end; await sink.drain(16 * 1024 * 1024); if (onProg) onProg(at / file.size); } await sink.close(); }
+    try { let at = 0; while (at < file.size) { const end = Math.min(file.size, at + CHUNK); const u8 = new Uint8Array(await readSlice(file, at, end)); sink.write(at, u8); at = end; await sink.drain(16 * 1024 * 1024); if (onProg) onProg(at / file.size); } await sink.close(); }
     catch (e) { await sink.abort(); throw e; }
   },
   async file(name, as, type) { const root = await navigator.storage.getDirectory(); const fh = await root.getFileHandle(name); const f = await fh.getFile(); return new File([f], as || name, { type: type || f.type, lastModified: f.lastModified }); },
@@ -2567,6 +2567,28 @@ async function tidyStorage() {
     else if (/^export_/.test(name) && !exNames.has(name) && !exporting) await DiskSink.remove(name);
   }
 }
+
+
+// Reads bytes from a picked file. Chrome on Android sometimes refuses Blob.arrayBuffer() on files from the system picker
+// ("The requested file could not be read…"): try FileReader, then the blob URL (the path <video> uses), before giving up.
+async function readSlice(file, a, b) {
+  const blob = file.slice(a, b);
+  try { return await blob.arrayBuffer(); } catch (e1) {
+    DBG.readFallback = (DBG.readFallback || 0) + 1; DBG.readErr = String(e1 && e1.message || e1).slice(0, 120);
+    try { return await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsArrayBuffer(blob); }); } catch {}
+    try {
+      const u = URL.createObjectURL(file);
+      try {
+        const r = await fetch(u, { headers: { Range: `bytes=${a}-${b - 1}` } });
+        if (r.status === 206) { const buf = await r.arrayBuffer(); if (buf.byteLength === b - a) return buf; }
+        else if (r.ok && file.size <= 96 * 1024 * 1024) { const buf = await r.arrayBuffer(); if (buf.byteLength === file.size) return buf.slice(a, b); }
+      } finally { URL.revokeObjectURL(u); }
+    } catch {}
+    throw e1;
+  }
+}
+const clipLabel = (f) => (f && f.name) ? f.name : 'a clip';
+const isReadErr = (e) => /could not be read|NotReadable|permission problems/i.test(String(e && (e.name + ' ' + e.message) || e));
 
 /* ── files (Photos picker): videos and photos, landing in date order ───── */
 const isVideoFile = (f) => /video|quicktime/.test(f.type) || /\.(mov|mp4|m4v)$/i.test(f.name);
@@ -2637,7 +2659,7 @@ async function makeThumbs(f, n) {
 }
 async function decoderThumbs(f, n, cw, ch) {
   const mp4 = MP4Box.createFile(); let info = null, perr = null; mp4.onReady = (i) => { info = i; }; mp4.onError = (e) => { perr = e; };
-  let pos = 0; while (!info && !perr && pos < f.file.size) { const end = Math.min(f.file.size, pos + CHUNK); const buf = await f.file.slice(pos, end).arrayBuffer(); buf.fileStart = pos; const next = mp4.appendBuffer(buf); pos = (typeof next === 'number' && next > pos) ? next : end; }
+  let pos = 0; while (!info && !perr && pos < f.file.size) { const end = Math.min(f.file.size, pos + CHUNK); const buf = await readSlice(f.file, pos, end); buf.fileStart = pos; const next = mp4.appendBuffer(buf); pos = (typeof next === 'number' && next > pos) ? next : end; }
   if (!info) throw new Error('no movie header');
   const v = info.videoTracks[0]; if (!v) throw new Error('no video track'); const trak = mp4.getTrackById(v.id); const samples = (trak && trak.samples) || [];
   const keys = samples.filter(x => x.is_sync); if (!keys.length) throw new Error('no keyframes');
@@ -2645,7 +2667,7 @@ async function decoderThumbs(f, n, cw, ch) {
   const frames = []; let derr = null;
   const dec = new VideoDecoder({ output: (fr) => frames.push(fr), error: (e) => { derr = e; } }); dec.configure(cfg);
   const picks = []; for (let i = 0; i < n; i++) { const t = (i + 0.5) * f.dur / n; let best = keys[0]; for (const k of keys) { if (k.cts / k.timescale <= t + 0.01) best = k; else break; } picks.push(best); }
-  for (const k of picks) { const data = new Uint8Array(await f.file.slice(k.offset, k.offset + k.size).arrayBuffer()); dec.decode(new EncodedVideoChunk({ type: 'key', timestamp: Math.round(k.cts / k.timescale * 1e6), data })); }
+  for (const k of picks) { const data = new Uint8Array(await readSlice(f.file, k.offset, k.offset + k.size)); dec.decode(new EncodedVideoChunk({ type: 'key', timestamp: Math.round(k.cts / k.timescale * 1e6), data })); }
   await dec.flush(); try { dec.close(); } catch {}
   if (derr) { for (const fr of frames) fr.close(); throw derr; }
   const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch; const ctx = cv.getContext('2d'); const rot = matrixRotation(v); const out = [];
@@ -2695,7 +2717,7 @@ $('pick').addEventListener('change', (e) => { const fl = e.target.files; if (S.r
 async function checkMusic() {
   const p = S.proj; if (!p.music || !S.musicFile) return;
   const au = $('music'); try { if (au.dataset.name !== S.musicFile.name) { au.src = URL.createObjectURL(S.musicFile); au.dataset.name = S.musicFile.name; } au.loop = true; au.volume = clamp(p.music.volume || 0.3, 0, 1); } catch {}
-  const bytes = stripId3(await S.musicFile.arrayBuffer());
+  const bytes = stripId3(await readSlice(S.musicFile, 0, S.musicFile.size));
   const decoders = [
     ['offline', () => new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000)],
     ['live', () => new (window.AudioContext || window.webkitAudioContext)()],
@@ -3414,7 +3436,7 @@ function audioDescription(mp4, trackId) {
 async function scanDsi(file, mp4, trackId) {
   try {
     const trak = mp4.getTrackById(trackId); const entry = trak.mdia.minf.stbl.stsd.entries[0]; if (!entry || entry.start == null) return undefined;
-    const bytes = new Uint8Array(await file.slice(entry.start, entry.start + Math.min(entry.size || 4096, 65536)).arrayBuffer());
+    const bytes = new Uint8Array(await readSlice(file, entry.start, entry.start + Math.min(entry.size || 4096, 65536)));
     for (let i = 0; i + 8 < bytes.length; i++) {
       if (bytes[i] === 0x65 && bytes[i + 1] === 0x73 && bytes[i + 2] === 0x64 && bytes[i + 3] === 0x73) {   // 'esds'
         let p = i + 8;                                   // version+flags
@@ -3435,9 +3457,25 @@ function matrixRotation(track) {
 class FrameSource {
   constructor(file, inSec, outSec, onAudio) { this.file = file; this.in = inSec; this.out = outSec; this.onAudio = onAudio; this.frames = []; this.done = false; this.err = null; this.pos = 0; this.eof = false; this.info = null; this.vtrack = null; this.atrack = null; this.rot = 0; this.pending = 0; this.flushed = false; this.waiters = []; this.adec = null; this.adone = false; this.mode = 'webcodecs'; this.fps = 30; this.lastTs = null; this.vel = null; }
   async open() {
+    try { await this.openDemux(); }
+    catch (e) {
+      if (!isReadErr(e)) throw e;
+      // the file can't be read as bytes, but the browser's own player may still open it: pictures yes, sound no
+      DBG.vonly = (DBG.vonly || 0) + 1; this.adec = null; this.atrack = null; this.onAudio = null; this.mp4 = null;
+      try { await this.openVideoOnly(); } catch (e2) { throw new Error('Android won’t let Clipper read this clip (' + clipLabel(this.file) + '). If it lives only in Google Photos, download it to the phone first, or pick it from Files → Downloads / Camera, then try again.'); }
+    }
+  }
+  async openVideoOnly() {
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto'; v.style.cssText = 'position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0';
+    document.body.appendChild(v); this.vel = v; this.url = URL.createObjectURL(this.file); v.src = this.url;
+    await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('video element could not open the clip')); setTimeout(() => rej(new Error('video element timed out')), 12000); });
+    this.vt = this.in; this.rot = 0; this.mode = 'video'; this.dec = { close() {} };
+    if (!(v.duration > 0)) throw new Error('video element reports no duration');
+  }
+  async openDemux() {
     const mp4 = MP4Box.createFile(); this.mp4 = mp4;
     const ready = new Promise((res, rej) => { mp4.onReady = res; mp4.onError = (e) => rej(new Error(String(e))); });
-    const pump1 = async () => { while (this.pos < this.file.size) { const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await this.file.slice(this.pos, end).arrayBuffer(); buf.fileStart = this.pos; const next = mp4.appendBuffer(buf); this.pos = (typeof next === 'number' && next > this.pos) ? next : end; if (this.info) break; } if (!this.info && this.pos >= this.file.size) mp4.flush(); };
+    const pump1 = async () => { while (this.pos < this.file.size) { const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await readSlice(this.file, this.pos, end); buf.fileStart = this.pos; const next = mp4.appendBuffer(buf); this.pos = (typeof next === 'number' && next > this.pos) ? next : end; if (this.info) break; } if (!this.info && this.pos >= this.file.size) mp4.flush(); };
     const p1 = pump1(); this.info = await Promise.race([ready, p1.then(() => this.info || Promise.reject(new Error('No video track found (unsupported file)')))]);
     await p1.catch(() => {});
     const v = this.info.videoTracks[0]; if (!v) throw new Error('no video track'); this.vtrack = v; this.rot = matrixRotation(v);
@@ -3485,7 +3523,7 @@ class FrameSource {
   wake() { const w = this.waiters; this.waiters = []; for (const r of w) r(); }
   async pump() {   // feed more file bytes until there are decoded frames to consume
     while (!this.stopFeeding && this.pos < this.file.size && this.frames.length < 6 && this.pending < 24) {
-      const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await this.file.slice(this.pos, end).arrayBuffer(); buf.fileStart = this.pos;
+      const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await readSlice(this.file, this.pos, end); buf.fileStart = this.pos;
       const next = this.mp4.appendBuffer(buf); this.pos = (typeof next === 'number' && next > this.pos) ? next : end;
     }
     if ((this.stopFeeding || this.pos >= this.file.size) && !this.flushed) { this.flushed = true; try { this.mp4.flush(); } catch {}
@@ -3506,7 +3544,7 @@ class FrameSource {
     await new Promise((res, rej) => { v.onloadedmetadata = res; v.onerror = () => rej(new Error('this browser could not open the clip either')); setTimeout(() => rej(new Error('this browser could not open the clip either (timed out)')), 12000); });
     this.vt = Math.max(this.in, resume); this.rot = 0; this.mode = 'video';
     if (this.adec) {   // the rest of the clip's sound still has to reach the audio decoder
-      try { while (this.pos < this.file.size) { const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await this.file.slice(this.pos, end).arrayBuffer(); buf.fileStart = this.pos; const next = this.mp4.appendBuffer(buf); this.pos = (typeof next === 'number' && next > this.pos) ? next : end; } this.mp4.flush(); } catch {}
+      try { while (this.pos < this.file.size) { const end = Math.min(this.file.size, this.pos + CHUNK); const buf = await readSlice(this.file, this.pos, end); buf.fileStart = this.pos; const next = this.mp4.appendBuffer(buf); this.pos = (typeof next === 'number' && next > this.pos) ? next : end; } this.mp4.flush(); } catch {}
       await Promise.race([this.adec.flush().catch(() => {}), new Promise(r => setTimeout(r, 6000))]);
     }
   }
@@ -3646,7 +3684,7 @@ async function renderMovie(onProgress) {
       src._sink = null;
       try {
         const ac = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000);
-        const ab = await ac.decodeAudioData(await f.file.slice(0).arrayBuffer());
+        const ab = await ac.decodeAudioData(await readSlice(f.file, 0, f.file.size));
         const i0 = Math.floor(c._in * ab.sampleRate), i1 = Math.min(ab.length, Math.ceil(c._out * ab.sampleRate));
         const chans = [0, 1].map(ch => resampleTo48(ab.getChannelData(Math.min(ch, ab.numberOfChannels - 1)).slice(i0, i1), ab.sampleRate, c.speed || 1));
         audio[seg.uid] = { chans }; DBG.aFallback = (DBG.aFallback || 0) + 1;
@@ -3935,7 +3973,7 @@ async function runExport() {
   } catch (e) {
     console.error(e); exporting = false;
     if (S.cancelRender || /cancel/i.test(String(e && e.message || e))) { S.cancelRender = false; renderExport('summary'); say('Stopped — nothing was changed', 3000); }
-    else { const diag = `\n\n(diagnostics: ${VERSION} · ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70)} · webcodecs ${SUPPORT.webcodecs} · audio enc ${SUPPORT.audioenc} dec ${SUPPORT.audiodec} · ${JSON.stringify(DBG)})`; renderExport('error', ((e && e.message) || String(e)) + diag); }
+    else { if (isReadErr(e)) e = new Error('Android would not let Clipper read one of your clips. If your clips are stored only in Google Photos (cloud), download them to the phone first, or pick them from Files → Downloads / Camera, then pick them again here.'); const diag = `\n\n(diagnostics: ${VERSION} · ${navigator.userAgent.replace(/^Mozilla\/5\.0 /, '').slice(0, 70)} · webcodecs ${SUPPORT.webcodecs} · audio enc ${SUPPORT.audioenc} dec ${SUPPORT.audiodec} · ${JSON.stringify(DBG)})`; renderExport('error', ((e && e.message) || String(e)) + diag); }
   } finally { exporting = false; S.expFrameCv = null; try { if (wake) wake.release(); } catch {} }
 }
 $('export').onclick = openExport;
