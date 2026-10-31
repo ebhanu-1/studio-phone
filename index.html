@@ -311,7 +311,7 @@
 <div id="top">
   <button class="lnk" id="back" title="All movies"><svg class="i" width="12" height="20" viewBox="0 0 12 20"><path d="M10 2 2 10l8 8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Clipper</span></button>
   <button id="titlebtn" title="Tap to rename"><span id="name">my movie</span><span id="navsub">0 clips · 0:00</span></button>
-  <span id="ver" title="version · build time">v4.3</span>
+  <span id="ver" title="version · build time">v4.4</span>
   <button id="undo" title="Undo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button><button id="redo" title="Redo" disabled><svg class="i" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
   <button id="export">Export</button>
 </div>
@@ -2295,7 +2295,7 @@ let toastT = null;
 // say(msg, ms) or say(msg, ms, { label:'Undo', fn }) — the action variant stays up longer and is tappable
 const say = (m, ms, action) => { const t = $('toast'); t.innerHTML = ''; t.appendChild(document.createTextNode(m)); t.classList.toggle('act', !!action); if (action) t.appendChild(h('button', { onclick: () => { t.classList.remove('on', 'act'); clearTimeout(toastT); action.fn(); } }, action.label || 'Undo')); t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on', 'act'), ms || (action ? 5500 : 2600)); };
 const DBG = { adecCfg: null, aSamples: 0, aData: 0, aSkip: 0, aErr: null };
-const VERSION = 'v4.3 · Oct 31 09:05';
+const VERSION = 'v4.4 · Oct 31 09:17';
 const ANDROID = /Android/i.test(navigator.userAgent), SAVE_WORD = ANDROID ? 'Save video' : 'Save to Photos', SAVED_WORD = ANDROID ? 'Saved' : 'Saved to Photos';
 const SUPPORT = { webcodecs: typeof VideoEncoder !== 'undefined' && typeof VideoDecoder !== 'undefined', audioenc: typeof AudioEncoder !== 'undefined', audiodec: typeof AudioDecoder !== 'undefined', share: !!(navigator.share && navigator.canShare), opfs: !!(navigator.storage && navigator.storage.getDirectory), idb: typeof indexedDB !== 'undefined' };
 // yield to the event loop without a timer: timers are throttled to ~1/s in hidden pages, message events are not
@@ -2607,12 +2607,32 @@ async function addFiles(list) {
     if (!meta) { say(`Can't open ${f.name} on this phone`, 4000); continue; }
     S.files[id] = Object.assign({ id, file: f, name: f.name, size: f.size, lastModified: f.lastModified || 0, url, kind, thumbs: [], missing: false }, meta);
     const clip = newClip(id, kind === 'photo' ? { out: PHOTO_DEFAULT, kb: (nPhoto++ % 2) ? 'out' : 'in' } : {});
-    S.proj.clips.push(clip); added.push(id);
+    S.proj.clips.push(clip); added.push(id); (added.pairs = added.pairs || []).push([id, f]);
     if (!S.sel) S.sel = clip.uid;
     S.touched = true; commit(); $('empty').classList.add('off');          // the clip shows up right away…
   }
   if (added.length) say(`${added.length} clip${added.length !== 1 ? 's' : ''} added`, 2500);
+  if (ANDROID && added.pairs) await cloudCheck(added.pairs);
   await thumbsFor(added);                                                    // …thumbnails fill in after, visible ones first
+}
+// Android: a clip Chrome can't read as bytes is almost always a Google Photos item that lives only in the cloud (Free up space).
+// Say so right when it is added, with what to do, instead of failing later at export.
+async function cloudCheck(pairs) {
+  const bad = [];
+  for (const [id, f] of pairs) { try { if (f.size === 0) throw new Error('could not be read'); await readSlice(f, 0, Math.min(f.size, 4096)); } catch (e) { if (isReadErr(e)) bad.push([id, f]); } }
+  if (!bad.length) return;
+  DBG.cloudClips = bad.map(([, f]) => f.name);
+  const names = bad.slice(0, 3).map(([, f]) => f.name).join(', ') + (bad.length > 3 ? ` and ${bad.length - 3} more` : '');
+  const close = () => ov.remove();
+  const remove = () => { const ids = new Set(bad.map(([id]) => id)); snapshot(); S.proj.clips = S.proj.clips.filter(c => !ids.has(c.fileId)); for (const id of ids) { const f = S.files[id]; if (f && f.url) { try { URL.revokeObjectURL(f.url); } catch {} } delete S.files[id]; } if (!S.proj.clips.some(c => c.uid === S.sel)) S.sel = (S.proj.clips[0] || {}).uid || null; commit(); if (!S.proj.clips.length) $('empty').classList.remove('off'); close(); };
+  const ov = h('div', { class: 'savedok', style: 'z-index:800' }, h('div', { class: 'box', style: 'max-width:330px;text-align:left' },
+    h('b', null, bad.length > 1 ? `${bad.length} clips aren’t on this phone` : 'This clip isn’t on this phone'),
+    h('span', { style: 'font-size:13px' }, names),
+    h('span', { style: 'font-size:15px;color:var(--ink);margin-top:12px' }, 'It looks like it is stored only in Google Photos (the cloud), so Clipper can’t read it properly. It may come out without sound or fail to export.'),
+    h('span', { style: 'font-size:15px;color:var(--ink);margin-top:10px' }, 'To fix it: open Google Photos, open the clip, tap ⋮ and choose Download. Or add it from Files → Downloads or Camera. Then add it here again.'),
+    h('div', { style: 'height:16px' }), h('button', { class: 'bbtn', style: 'min-height:48px', onclick: remove }, bad.length > 1 ? 'Remove these clips' : 'Remove this clip'),
+    h('div', { style: 'height:8px' }), h('button', { class: 'bbtn quiet', style: 'min-height:46px', onclick: close }, 'Keep anyway')));
+  document.body.appendChild(ov);
 }
 function probeVideo(url) {
   return new Promise((res, rej) => {
